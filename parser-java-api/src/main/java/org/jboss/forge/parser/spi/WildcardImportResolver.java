@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source
- * Copyright 2010, Red Hat, Inc., and individual contributors
+ * Copyright 2012, Red Hat, Inc., and individual contributors
  * by the @authors tag. See the copyright.txt in the distribution for a
  * full listing of individual contributors.
  *
@@ -19,14 +19,18 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
+package org.jboss.forge.parser.spi;
 
-package org.jboss.forge.scaffold.faces.metawidget.inspector.propertystyle;
+import org.jboss.forge.parser.java.JavaSource;
 
 /**
+ * Responsible for providing additional import resolution functionality for situations where classes have referenced a
+ * package or wild-card import.
+ * 
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
- *
+ * 
  */
-public @interface AnotherMockAnnotation
+public interface WildcardImportResolver
 {
-   int value() default 42;
+   public String resolve(JavaSource<?> source, String type);
 }

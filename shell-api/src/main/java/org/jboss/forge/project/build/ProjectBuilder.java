@@ -1,6 +1,6 @@
 /*
  * JBoss, Home of Professional Open Source
- * Copyright 2010, Red Hat, Inc., and individual contributors
+ * Copyright 2012, Red Hat, Inc., and individual contributors
  * by the @authors tag. See the copyright.txt in the distribution for a
  * full listing of individual contributors.
  *
@@ -19,72 +19,30 @@
  * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
  * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
  */
+package org.jboss.forge.project.build;
 
-package org.jboss.forge.scaffold.faces.metawidget.inspector.propertystyle;
-
+import org.jboss.forge.resources.Resource;
 
 /**
+ * Used to configure and execute the project build system.
+ * 
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
- *
  */
-public @interface MockAnnotation
+public interface ProjectBuilder
 {
-   byte aByte();
+   /**
+    * Manually add an argument to be passed to the underlying build system.
+    */
+   ProjectBuilder addArguments(String... args);
 
-   short aShort();
+   /**
+    * Enable or disable test execution during build.
+    */
+   ProjectBuilder runTests(boolean test);
 
-   int anInt();
+   /**
+    * Execute the build.
+    */
+   Resource<?> build() throws BuildException;
 
-   long aLong();
-
-   float aFloat();
-
-   double aDouble();
-
-   char aChar();
-
-   boolean aBoolean();
-
-   String aString();
-
-   Class<?> aClass();
-
-   AnotherMockAnnotation anAnnotation();
-
-   anEnum anEnum();
-
-   byte[] aByteArray();
-
-   short[] aShortArray();
-
-   int[] anIntArray();
-
-   long[] aLongArray();
-
-   float[] aFloatArray();
-
-   double[] aDoubleArray();
-
-   char[] aCharArray();
-
-   boolean[] aBooleanArray();
-
-   String[] aStringArray();
-
-   Class<?>[] aClassArray();
-
-   AnotherMockAnnotation[] anAnnotationArray();
-
-   anEnum[] anEnumArray();
-
-   //
-   // Inner class
-   //
-
-   public static enum anEnum {
-
-      ONE,
-      TWO,
-      THREE
-   }
 }

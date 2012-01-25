@@ -1,4 +1,5 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+   xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
    <modelVersion>4.0.0</modelVersion>
 
    <parent>
@@ -47,8 +48,8 @@
 
       <!-- Artifact Versions -->
       <aether.version>1.11</aether.version>
-      <arquillian.version>1.0.0.Alpha4</arquillian.version>
-      <arquillian.container.version>1.1.2.Final</arquillian.container.version>
+      <arquillian.version>1.0.0.CR7</arquillian.version>
+      <arquillian.container.version>1.0.0.CR3</arquillian.container.version>
       <cal10n.version>0.7.2</cal10n.version>
       <cdi.version>1.0-SP4</cdi.version>
       <groovy.version>1.7.5</groovy.version>
@@ -62,6 +63,7 @@
       <jline.version>2.5</jline.version>
       <junit.version>4.8.1</junit.version>
       <log4j.version>1.2.16</log4j.version>
+      <log4j.extras.version>1.1</log4j.extras.version>
       <maven.version>3.0.3</maven.version>
       <mvel.version>2.1.Beta7</mvel.version>
       <shrinkwrap.version>1.0.0-alpha-11</shrinkwrap.version>
@@ -88,6 +90,7 @@
       <module>project-model-maven</module>
       <module>project-model-maven-tests</module>
       <module>test-harness</module>
+      <module>test-harness-web</module>
       <module>shell</module>
       <module>javaee-api</module>
       <module>javaee-impl</module>
@@ -470,6 +473,12 @@
          </dependency>
 
          <dependency>
+            <groupId>org.jboss.forge</groupId>
+            <artifactId>forge-test-harness-web</artifactId>
+            <version>${project.version}</version>
+         </dependency>
+
+         <dependency>
             <groupId>org.eclipse.jgit</groupId>
             <artifactId>org.eclipse.jgit.pgm</artifactId>
             <version>${jgit.version}</version>
@@ -539,25 +548,42 @@
             <version>${junit.version}</version>
             <scope>test</scope>
          </dependency>
+         
+         <!-- Arquillian -->
+         
          <dependency>
-            <groupId>org.jboss.arquillian</groupId>
-            <artifactId>arquillian-junit</artifactId>
+             <groupId>org.jboss.arquillian</groupId>
+             <artifactId>arquillian-bom</artifactId>
+             <version>${arquillian.version}</version>
+         </dependency>
+         <dependency>
+             <groupId>org.jboss.arquillian</groupId>
+             <artifactId>arquillian-bom</artifactId>
+             <version>${arquillian.version}</version>
+             <scope>import</scope>
+             <type>pom</type>
+         </dependency>
+         <dependency>
+            <groupId>org.jboss.arquillian.junit</groupId>
+            <artifactId>arquillian-junit-container</artifactId>
             <version>${arquillian.version}</version>
             <scope>test</scope>
          </dependency>
          <dependency>
-            <groupId>org.jboss.weld.arquillian.container</groupId>
+            <groupId>org.jboss.arquillian.container</groupId>
             <artifactId>arquillian-weld-ee-embedded-1.1</artifactId>
             <version>${arquillian.container.version}</version>
             <scope>test</scope>
          </dependency>
 
+<!-- 
          <dependency>
             <groupId>org.jboss.shrinkwrap</groupId>
             <artifactId>shrinkwrap-api</artifactId>
             <version>${shrinkwrap.version}</version>
             <scope>test</scope>
          </dependency>
+         -->
          <dependency>
             <groupId>org.jboss.shrinkwrap.descriptors</groupId>
             <artifactId>shrinkwrap-descriptors-api</artifactId>
@@ -568,6 +594,8 @@
             <artifactId>shrinkwrap-descriptors-impl</artifactId>
             <version>${shrinkwrap.descriptors.version}</version>
          </dependency>
+          
+          
          <dependency>
             <groupId>org.codehaus.groovy</groupId>
             <artifactId>groovy-all</artifactId>
@@ -604,6 +632,11 @@
             <groupId>log4j</groupId>
             <artifactId>log4j</artifactId>
             <version>${log4j.version}</version>
+         </dependency>
+         <dependency>
+            <groupId>log4j</groupId>
+            <artifactId>apache-log4j-extras</artifactId>
+            <version>${log4j.extras.version}</version>
          </dependency>
          <!-- END SLF4J Deps -->
 
