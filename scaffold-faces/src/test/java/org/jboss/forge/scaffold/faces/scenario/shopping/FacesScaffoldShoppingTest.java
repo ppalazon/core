@@ -41,7 +41,7 @@ import org.junit.runner.RunWith;
 
 /**
  * Lincoln's example domain model from 2nd Dec 2011.
- * 
+ *
  * @author Richard Kennard
  */
 
@@ -115,6 +115,7 @@ public class FacesScaffoldShoppingTest extends AbstractFacesScaffoldTest
 
       Assert.assertTrue(contents.contains("\"#{addressBean.address.city}\""));
       Assert.assertTrue(!contents.contains(".City"));
+      Assert.assertTrue(!contents.contains("stub"));
 
       // View
 
@@ -124,6 +125,7 @@ public class FacesScaffoldShoppingTest extends AbstractFacesScaffoldTest
 
       Assert.assertTrue(contents.contains("\"#{addressBean.address.city}\""));
       Assert.assertTrue(!contents.contains(".City"));
+      Assert.assertTrue(!contents.contains("stub"));
 
       // Search
 
@@ -134,6 +136,7 @@ public class FacesScaffoldShoppingTest extends AbstractFacesScaffoldTest
       Assert.assertTrue(contents.contains("\"#{addressBean.search.city}\""));
       Assert.assertTrue(contents.contains("\"#{_item.city}\""));
       Assert.assertTrue(!contents.contains(".City"));
+      Assert.assertTrue(!contents.contains("stub"));
 
       // Backing Bean
 
@@ -153,7 +156,7 @@ public class FacesScaffoldShoppingTest extends AbstractFacesScaffoldTest
       // Deploy to a real container and test
 
       this.webTest.setup(project);
-      JavaClass clazz = this.webTest.from(current, FacesScaffoldShoppingTestClient.class);
+      JavaClass clazz = this.webTest.from(current, FacesScaffoldShoppingClient.class);
 
       this.webTest.buildDefaultDeploymentMethod(project, clazz, Arrays.asList(
                ".addAsResource(\"META-INF/persistence.xml\", \"META-INF/persistence.xml\")"
@@ -161,6 +164,5 @@ public class FacesScaffoldShoppingTest extends AbstractFacesScaffoldTest
       this.webTest.addAsTestClass(project, clazz);
 
       getShell().execute("build");
-      System.out.println("fun...");
    }
 }

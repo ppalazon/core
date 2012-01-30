@@ -30,6 +30,7 @@ import org.jboss.jsfunit.jsfsession.JSFClientSession;
 import org.junit.Ignore;
 import org.junit.Test;
 
+import com.gargoylesoftware.htmlunit.html.DomNode;
 import com.gargoylesoftware.htmlunit.html.HtmlForm;
 import com.gargoylesoftware.htmlunit.html.HtmlPage;
 import com.gargoylesoftware.htmlunit.html.HtmlTable;
@@ -39,7 +40,7 @@ import com.gargoylesoftware.htmlunit.html.HtmlTable;
  */
 @Ignore
 @InitialPage("/faces/index.xhtml")
-public class FacesScaffoldPetClinicTestClient
+public class FacesScaffoldPetClinicClient
 {
    @JSFUnitResource
    private JSFClientSession client;
@@ -108,13 +109,16 @@ public class FacesScaffoldPetClinicTestClient
          table = (HtmlTable) page.getHtmlElementById("search:petBeanPageItems");
          assertEquals("Pet #1", table.getCellAt(1, 0).getTextContent());
          assertEquals("2", table.getCellAt(1, 1).getTextContent());
-         assertEquals("true", table.getCellAt(1, 2).getTextContent());
-         assertEquals("Owner Firstname #1, Owner Lastname #1, Owner Address #1, , , , ", table.getCellAt(1, 3)
+         DomNode booleanNode = table.getCellAt(1, 2).getChildNodes().get(0).getChildNodes().get(0);
+         assertEquals("span", booleanNode.getNodeName());
+         assertEquals("", booleanNode.getTextContent());
+         assertEquals("boolean-true", booleanNode.getAttributes().getNamedItem("class").getNodeValue());
+         assertEquals("Owner Firstname #1 Owner Lastname #1 Owner Address #1", table.getCellAt(1, 3)
                   .getTextContent());
 
          page = page.getAnchorByText("Pet #1").click();
          assertTrue(page.asText().contains("View existing Pet"));
-         page = page.getAnchorByText("Owner Firstname #1, Owner Lastname #1, Owner Address #1, , , ,").click();
+         page = page.getAnchorByText("Owner Firstname #1 Owner Lastname #1 Owner Address #1").click();
          assertTrue(page.asText().contains("View existing Owner"));
 
          // Create a new Owner
