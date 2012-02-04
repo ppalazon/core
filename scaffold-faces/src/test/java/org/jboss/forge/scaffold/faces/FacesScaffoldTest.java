@@ -21,7 +21,8 @@
  */
 package org.jboss.forge.scaffold.faces;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.fail;
 
 import java.util.Arrays;
 import java.util.List;
@@ -153,7 +154,7 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
                "template=\"/resources/scaffold/page.xhtml"));
 
       metawidget = new StringBuilder("<h:form id=\"create\">\n");
-      metawidget.append("\t\t\t<h:messages globalOnly=\"true\"/>\n\n");
+      metawidget.append("\t\t\t<h:messages globalOnly=\"true\" styleClass=\"error\"/>\n\n");
       metawidget.append("\t\t\t<h:panelGrid columnClasses=\"label,component,required\" columns=\"3\">\r\n");
       metawidget.append("\t\t\t\t<h:outputLabel for=\"customerBeanCustomerFirstName\" value=\"First Name:\"/>\r\n");
       metawidget.append("\t\t\t\t<h:panelGroup>\r\n");
@@ -182,8 +183,7 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
                "template=\"/resources/scaffold/page.xhtml"));
 
       StringBuilder searchMetawidget = new StringBuilder("<h:form id=\"search\">\r\n");
-      searchMetawidget.append("\t\t\t<h:panelGroup styleClass=\"search\">\r\n");
-      searchMetawidget.append("\t\t\t\t<h:messages globalOnly=\"true\"/>\r\n\r\n");
+      searchMetawidget.append("\t\t\t<h:panelGroup styleClass=\"search\">\r\n\r\n");
       searchMetawidget.append("\t\t\t\t<h:panelGrid columnClasses=\"label,component,required\" columns=\"3\">\r\n");
       searchMetawidget
                .append("\t\t\t\t\t<h:outputLabel for=\"customerBeanSearchFirstName\" value=\"First Name:\"/>\r\n");
@@ -234,7 +234,7 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
       Assert.assertTrue(customerBean.exists());
       contents = Streams.toString(customerBean.getResourceInputStream());
 
-      Assert.assertTrue(contents.contains("\n\tprivate Customer customer = new Customer();"));
+      Assert.assertTrue(contents.contains("\n\tprivate Customer customer;"));
 
       StringBuilder qbeMetawidget = new StringBuilder(
                "List<Predicate> predicatesList = new ArrayList<Predicate>();\r\n\r\n");
@@ -251,6 +251,9 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
       qbeMetawidget.append("\t\treturn ");
 
       Assert.assertTrue(contents.contains(qbeMetawidget));
+
+      Assert.assertTrue(contents.contains("\n\tprivate Customer add = new Customer();"));
+      Assert.assertTrue(contents.contains("\n\t\tthis.add = new Customer();"));
 
       // ViewUtils
 
@@ -276,7 +279,7 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
       FileResource<?> css = web.getWebResource("resources/forge-style.css");
       Assert.assertTrue(css.exists());
       contents = Streams.toString(css.getResourceInputStream());
-      Assert.assertTrue(contents.contains("#content table .component .error {"));
+      Assert.assertTrue(contents.contains("#content .error {"));
 
       Assert.assertTrue(web.getWebResource("resources/jboss-community.png").exists());
       Assert.assertTrue(web.getWebResource("resources/remove.png").exists());
@@ -439,7 +442,7 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
       getShell().execute("entity --named Customer");
       getShell().execute("field string --named firstName");
       getShell().execute("field string --named lastName");
-      queueInputLines("com.test.domain.Address");
+      queueInputLines("com.test.model.Address");
       getShell().execute("field custom --named address");
 
       queueInputLines("", "");
@@ -463,7 +466,7 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
       Assert.assertTrue(contents.contains(
                "template=\"/resources/scaffold/page.xhtml"));
       StringBuilder metawidget = new StringBuilder("\t\t<h:form id=\"create\">\n");
-      metawidget.append("\t\t\t<h:messages globalOnly=\"true\"/>\n\n");
+      metawidget.append("\t\t\t<h:messages globalOnly=\"true\" styleClass=\"error\"/>\n\n");
       metawidget.append("\t\t\t<h:panelGrid columnClasses=\"label,component,required\" columns=\"3\">\r\n");
       metawidget.append("\t\t\t\t<h:outputLabel for=\"customerBeanCustomerFirstName\" value=\"First Name:\"/>\r\n");
       metawidget.append("\t\t\t\t<h:panelGroup>\r\n");
@@ -544,12 +547,12 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
       getShell().execute("entity --named Customer");
       getShell().execute("field string --named firstName");
       getShell().execute("field string --named lastName");
-      getShell().execute("field manyToOne --named employer --fieldType com.test.domain.Employer");
+      getShell().execute("field manyToOne --named employer --fieldType com.test.model.Employer");
 
       // (need to specify both entities until https://issues.jboss.org/browse/FORGE-392)
 
       queueInputLines("", "");
-      getShell().execute("scaffold from-entity com.test.domain.Employer com.test.domain.Customer");
+      getShell().execute("scaffold from-entity com.test.model.Employer com.test.model.Customer");
 
       JavaSourceFacet java = project.getFacet(JavaSourceFacet.class);
       WebResourceFacet web = project.getFacet(WebResourceFacet.class);
@@ -658,7 +661,7 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
       qbeMetawidget.append("\t\t}\r\n");
 
       Assert.assertTrue(contents.contains(qbeMetawidget));
-      Assert.assertTrue(contents.contains("import com.test.domain.Customer;\r\nimport com.test.domain.Employer;\r\n"));
+      Assert.assertTrue(contents.contains("import com.test.model.Customer;\r\nimport com.test.model.Employer;\r\n"));
    }
 
    @Test
@@ -672,12 +675,12 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
       getShell().execute("entity --named Customer");
       getShell().execute("field string --named firstName");
       getShell().execute("field string --named lastName");
-      getShell().execute("field oneToMany --named groceries --fieldType com.test.domain.Grocery");
+      getShell().execute("field oneToMany --named groceries --fieldType com.test.model.Grocery");
 
       // (need to specify both entities until https://issues.jboss.org/browse/FORGE-392)
 
       queueInputLines("", "");
-      getShell().execute("scaffold from-entity com.test.domain.Grocery com.test.domain.Customer");
+      getShell().execute("scaffold from-entity com.test.model.Grocery com.test.model.Customer");
 
       WebResourceFacet web = project.getFacet(WebResourceFacet.class);
 
@@ -786,8 +789,7 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
                "template=\"/resources/scaffold/page.xhtml"));
 
       StringBuilder searchMetawidget = new StringBuilder("<h:form id=\"search\">\r\n");
-      searchMetawidget.append("\t\t\t<h:panelGroup styleClass=\"search\">\r\n");
-      searchMetawidget.append("\t\t\t\t<h:messages globalOnly=\"true\"/>\r\n\r\n");
+      searchMetawidget.append("\t\t\t<h:panelGroup styleClass=\"search\">\r\n\r\n");
       searchMetawidget.append("\t\t\t\t<h:panelGrid columnClasses=\"label,component,required\" columns=\"3\">\r\n");
       searchMetawidget
                .append("\t\t\t\t\t<h:outputLabel for=\"customerBeanSearchFirstName\" value=\"First Name:\"/>\r\n");
@@ -928,14 +930,14 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
       getShell().execute("entity --named Customer");
       getShell().execute("field string --named field1");
       getShell().execute("field string --named field2");
-      getShell().execute("field oneToMany --named field3 --fieldType com.test.domain.Item");
+      getShell().execute("field oneToMany --named field3 --fieldType com.test.model.Item");
       getShell().execute("field string --named field4");
       getShell().execute("field string --named field5");
       getShell().execute("field string --named field6");
       getShell().execute("field string --named field7");
       getShell().execute("field string --named field8");
       queueInputLines("", "");
-      getShell().execute("scaffold from-entity com.test.domain.Customer");
+      getShell().execute("scaffold from-entity com.test.model.Customer");
 
       WebResourceFacet web = project.getFacet(WebResourceFacet.class);
 
@@ -948,8 +950,7 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
                "template=\"/resources/scaffold/page.xhtml"));
 
       StringBuilder searchMetawidget = new StringBuilder("<h:form id=\"search\">\r\n");
-      searchMetawidget.append("\t\t\t<h:panelGroup styleClass=\"search\">\r\n");
-      searchMetawidget.append("\t\t\t\t<h:messages globalOnly=\"true\"/>\r\n\r\n");
+      searchMetawidget.append("\t\t\t<h:panelGroup styleClass=\"search\">\r\n\r\n");
       searchMetawidget.append("\t\t\t\t<h:panelGrid columnClasses=\"label,component,required\" columns=\"3\">\r\n");
       searchMetawidget.append("\t\t\t\t\t<h:outputLabel for=\"customerBeanSearchField1\" value=\"Field 1:\"/>\r\n");
       searchMetawidget.append("\t\t\t\t\t<h:panelGroup>\r\n");
@@ -1001,14 +1002,14 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
       getShell().execute("field string --named name");
       getShell().execute("entity --named Bar");
       getShell().execute("field string --named name");
-      getShell().execute("field oneToOne --named baz --fieldType com.test.domain.Baz");
+      getShell().execute("field oneToOne --named baz --fieldType com.test.model.Baz");
       getShell().execute("entity --named Foo");
       getShell().execute("field string --named name");
-      getShell().execute("field oneToOne --named bar --fieldType com.test.domain.Bar");
+      getShell().execute("field oneToOne --named bar --fieldType com.test.model.Bar");
 
       queueInputLines("", "", "", "", "");
       getShell()
-               .execute("scaffold from-entity com.test.domain.*");
+               .execute("scaffold from-entity com.test.model.*");
 
       WebResourceFacet web = project.getFacet(WebResourceFacet.class);
 

@@ -38,6 +38,7 @@ import org.metawidget.statically.faces.StaticFacesUtils;
 import org.metawidget.statically.faces.component.StaticUIMetawidget;
 import org.metawidget.statically.faces.component.ValueHolder;
 import org.metawidget.statically.faces.component.html.StaticHtmlMetawidget;
+import org.metawidget.statically.faces.component.html.layout.HtmlMessage;
 import org.metawidget.statically.faces.component.html.layout.HtmlPanelGrid;
 import org.metawidget.statically.faces.component.html.layout.HtmlPanelGroup;
 import org.metawidget.statically.faces.component.html.widgetbuilder.FaceletsParam;
@@ -407,7 +408,7 @@ public class EntityWidgetBuilder
 
             HtmlCommandLink addLink = new HtmlCommandLink();
             addLink.putAttribute("styleClass", "add-button");
-            String addExpression = COLLECTION_VAR + ".add(" + controllerName + "Bean." + controllerName + ")";
+            String addExpression = COLLECTION_VAR + ".add(" + controllerName + "Bean.added)";
             addLink.putAttribute("action", StaticFacesUtils.wrapExpression(addExpression));
 
             // Use a f:setPropertyActionListener to initialize the bidirectional relationship
@@ -415,8 +416,7 @@ public class EntityWidgetBuilder
             SetPropertyActionListener setPropertyActionListener = new SetPropertyActionListener();
             setPropertyActionListener.putAttribute(
                      "target",
-                     StaticFacesUtils.wrapExpression(controllerName + "Bean." + controllerName + "."
-                              + inverseRelationship));
+                     StaticFacesUtils.wrapExpression(controllerName + "Bean.add." + inverseRelationship));
             StandardBindingProcessor bindingProcessor = metawidget.getWidgetProcessor(StandardBindingProcessor.class);
 
             if (bindingProcessor != null)
@@ -450,11 +450,20 @@ public class EntityWidgetBuilder
             Map<String, String> columnAttributes,
             StaticXmlMetawidget metawidget)
    {
-      // Suppress columns that show Collection values (their toString is never very nice)
+      // Suppress columns that show Collection values. Their toString is never very nice, and nested tables look awful!
+      //
+      // Note: we don't just do N_TO_MANY values, as sometimes Collections are not annotated
 
-      if (TRUE.equals(columnAttributes.get(N_TO_MANY)))
+      String type = WidgetBuilderUtils.getActualClassOrType(columnAttributes);
+
+      if (type != null)
       {
-         return;
+         Class<?> clazz = ClassUtils.niceForName(type);
+
+         if (clazz != null && (Collection.class.isAssignableFrom(clazz)))
+         {
+            return;
+         }
       }
 
       // FORGE-446: Expand columns that show one-to-one values
@@ -522,18 +531,35 @@ public class EntityWidgetBuilder
 
          if (tableAttributes.containsKey(INVERSE_RELATIONSHIP) && !metawidget.isReadOnly())
          {
-            StaticHtmlMetawidget footerMetawidget = new StaticHtmlMetawidget();
-            Map<String, String> footerAttributes = CollectionUtils.newHashMap();
-            metawidget.initNestedMetawidget(footerMetawidget, footerAttributes);
-            footerMetawidget.setValue(StaticFacesUtils.wrapExpression(controllerName + "Bean." + controllerName + "."
-                     + columnName));
-            footerMetawidget.setPath(componentType + StringUtils.SEPARATOR_FORWARD_SLASH_CHAR + columnName);
-            footerMetawidget.setLayout(new SimpleLayout());
+            // If it's an inverse relationship, we really should have been able to determine sub-properties, so we
+            // should never be at 'entity' level *unless* componentType couldn't resolve to an actual type
 
-            Facet footerFacet = new Facet();
-            footerFacet.putAttribute("name", "footer");
-            footerFacet.getChildren().add(footerMetawidget);
-            column.getChildren().add(footerFacet);
+            if (!ENTITY.equals(elementName))
+            {
+               StaticHtmlMetawidget footerMetawidget = new StaticHtmlMetawidget();
+               Map<String, String> footerAttributes = CollectionUtils.newHashMap();
+               metawidget.initNestedMetawidget(footerMetawidget, footerAttributes);
+               footerMetawidget.setValue(StaticFacesUtils.wrapExpression(controllerName + "Bean.add." + columnName));
+               footerMetawidget.setPath(componentType + StringUtils.SEPARATOR_FORWARD_SLASH_CHAR + columnName);
+               footerMetawidget.setLayout(new SimpleLayout());
+
+               Facet footerFacet = new Facet();
+               footerFacet.putAttribute("name", "footer");
+               footerFacet.getChildren().add(footerMetawidget);
+
+               ReadableIdProcessor readableIdProcessor = metawidget.getWidgetProcessor(ReadableIdProcessor.class);
+
+               if (readableIdProcessor != null)
+               {
+                  readableIdProcessor.processWidget(footerMetawidget, elementName, columnAttributes, metawidget);
+               }
+
+               HtmlMessage message = new HtmlMessage();
+               message.putAttribute("for", footerMetawidget.getAttribute("id"));
+               message.putAttribute("styleClass", "error");
+               footerFacet.getChildren().add(message);
+               column.getChildren().add(footerFacet);
+            }
          }
       }
    }
