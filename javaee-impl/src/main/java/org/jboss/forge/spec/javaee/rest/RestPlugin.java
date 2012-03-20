@@ -31,18 +31,28 @@ import java.util.Map;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import javax.persistence.Entity;
+import javax.persistence.Id;
 import javax.ws.rs.Path;
+import javax.ws.rs.core.MediaType;
 import javax.xml.bind.annotation.XmlRootElement;
 
+import org.jboss.forge.env.Configuration;
 import org.jboss.forge.parser.JavaParser;
 import org.jboss.forge.parser.java.Annotation;
+import org.jboss.forge.parser.java.Field;
 import org.jboss.forge.parser.java.JavaClass;
 import org.jboss.forge.parser.java.JavaSource;
+import org.jboss.forge.parser.java.Member;
+import org.jboss.forge.parser.java.Method;
+import org.jboss.forge.parser.java.Parameter;
+import org.jboss.forge.parser.java.util.Strings;
+import org.jboss.forge.parser.java.util.Types;
 import org.jboss.forge.project.Project;
 import org.jboss.forge.project.facets.JavaSourceFacet;
 import org.jboss.forge.project.facets.events.InstallFacets;
 import org.jboss.forge.resources.Resource;
 import org.jboss.forge.resources.java.JavaResource;
+import org.jboss.forge.shell.PromptType;
 import org.jboss.forge.shell.ShellMessages;
 import org.jboss.forge.shell.ShellPrompt;
 import org.jboss.forge.shell.plugins.Alias;
@@ -54,12 +64,15 @@ import org.jboss.forge.shell.plugins.Plugin;
 import org.jboss.forge.shell.plugins.RequiresFacet;
 import org.jboss.forge.shell.plugins.RequiresProject;
 import org.jboss.forge.shell.plugins.SetupCommand;
+import org.jboss.forge.shell.project.ProjectScoped;
 import org.jboss.forge.spec.javaee.EJBFacet;
+import org.jboss.forge.spec.javaee.JTAFacet;
 import org.jboss.forge.spec.javaee.PersistenceFacet;
+import org.jboss.forge.spec.javaee.RestActivatorType;
+import org.jboss.forge.spec.javaee.RestApplicationFacet;
 import org.jboss.forge.spec.javaee.RestFacet;
 import org.jboss.seam.render.TemplateCompiler;
 import org.jboss.seam.render.template.CompiledTemplateResource;
-import org.jboss.shrinkwrap.descriptor.impl.base.Strings;
 
 /**
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
@@ -85,12 +98,31 @@ public class RestPlugin implements Plugin
    @Inject
    private ShellPrompt prompt;
 
+   @Inject
+   @ProjectScoped
+   Configuration configuration;
+
    @SetupCommand
-   public void setup(final PipeOut out)
+   public void setup(@Option(name = "activatorType") RestActivatorType activatorType, final PipeOut out)
    {
       if (!project.hasFacet(RestFacet.class))
       {
          request.fire(new InstallFacets(RestFacet.class));
+      }
+
+      String rootpath = prompt.prompt("What root path do you want to use for your resources?", "/rest");
+      configuration.addProperty(RestFacet.ROOTPATH, rootpath);
+
+      if (activatorType == null || activatorType == RestActivatorType.WEB_XML && !project.hasFacet(RestWebXmlFacetImpl.class))
+      {
+         request.fire(new InstallFacets(RestWebXmlFacetImpl.class));
+      } else if (activatorType == RestActivatorType.APP_CLASS && !project.hasFacet(RestApplicationFacet.class))
+      {
+         String pkg = prompt.promptCommon("In what package do you want to store the Application class?", PromptType.JAVA_PACKAGE);
+         String restApplication = prompt.prompt("How do you want to name the Application class?", "RestApplication");
+         configuration.addProperty(RestApplicationFacet.REST_APPLICATIONCLASS_PACKAGE, pkg);
+         configuration.addProperty(RestApplicationFacet.REST_APPLICATIONCLASS_NAME, restApplication);
+         request.fire(new InstallFacets(RestApplicationFacet.class));
       }
 
       if (project.hasFacet(RestFacet.class))
@@ -101,21 +133,24 @@ public class RestPlugin implements Plugin
 
    @SuppressWarnings("unchecked")
    @Command(value = "endpoint-from-entity", help = "Creates a REST endpoint from an existing domain @Entity object")
-   public void endpointFromEntity(final PipeOut out,
-            @Option(required = false) JavaResource[] targets) throws FileNotFoundException
+   public void endpointFromEntity(
+           final PipeOut out,
+           @Option(name = "contentType", defaultValue = MediaType.APPLICATION_XML, completer = ContentTypeCompleter.class) String contentType,
+           @Option(required = false) JavaResource[] targets)
+           throws FileNotFoundException
    {
       /*
-       * Make sure we have all the features we need for this to work.
-       */
+      * Make sure we have all the features we need for this to work.
+      */
       if (!project.hasAllFacets(Arrays.asList(EJBFacet.class, PersistenceFacet.class)))
       {
-         request.fire(new InstallFacets(true, EJBFacet.class, PersistenceFacet.class));
+         request.fire(new InstallFacets(true, JTAFacet.class, EJBFacet.class, PersistenceFacet.class));
       }
 
       if (((targets == null) || (targets.length < 1))
-               && (currentResource instanceof JavaResource))
+              && (currentResource instanceof JavaResource))
       {
-         targets = new JavaResource[] { (JavaResource) currentResource };
+         targets = new JavaResource[]{(JavaResource) currentResource};
       }
 
       List<JavaResource> javaTargets = selectTargets(out, targets);
@@ -132,11 +167,22 @@ public class RestPlugin implements Plugin
          if (!entity.hasAnnotation(XmlRootElement.class))
             entity.addAnnotation(XmlRootElement.class);
 
+         String idType = resolveIdType(entity);
+         if (!Types.isBasicType(idType))
+         {
+            ShellMessages.error(out, "Skipping class because @Id type [" + idType + "] is not supported by endpoint generation.");
+            continue;
+         }
+         String idSetterName = resolveIdSetterName(entity);
+
          CompiledTemplateResource template = compiler.compileResource(getClass().getResourceAsStream(
-                  "/org/jboss/forge/rest/Endpoint.jv"));
+                 "/org/jboss/forge/rest/Endpoint.jv"));
 
          Map<Object, Object> map = new HashMap<Object, Object>();
          map.put("entity", entity);
+         map.put("idType", idType);
+         map.put("setIdStatement", idSetterName);
+         map.put("contentType", contentType);
          map.put("entityTable", getEntityTable(entity));
 
          JavaClass endpoint = JavaParser.parse(JavaClass.class, template.render(map));
@@ -145,19 +191,100 @@ public class RestPlugin implements Plugin
          endpoint.getAnnotation(Path.class).setStringValue("/" + getEntityTable(entity).toLowerCase());
 
          /*
-          * Save the sources
-          */
+         * Save the sources
+         */
          java.saveJavaSource(entity);
 
          if (!java.getJavaResource(endpoint).exists()
-                  || prompt.promptBoolean("Endpoint [" + endpoint.getQualifiedName() + "] already, exists. Overwrite?"))
+                 || prompt.promptBoolean("Endpoint [" + endpoint.getQualifiedName() + "] already, exists. Overwrite?"))
          {
             java.saveJavaSource(endpoint);
             ShellMessages.success(out, "Generated REST endpoint for [" + entity.getQualifiedName() + "]");
-         }
-         else
+         } else
             ShellMessages.info(out, "Aborted endpoint generation for [" + entity.getQualifiedName() + "]");
       }
+   }
+
+   private String resolveIdType(JavaClass entity)
+   {
+      for (Member<JavaClass, ?> member : entity.getMembers())
+      {
+         if (member.hasAnnotation(Id.class))
+         {
+            if (member instanceof Method)
+            {
+               return ((Method) member).getReturnType();
+            }
+            if (member instanceof Field)
+            {
+               return ((Field) member).getType();
+            }
+         }
+      }
+      return "Object";
+   }
+
+   private String resolveIdSetterName(JavaClass entity)
+   {
+      String result = null;
+
+      for (Member<JavaClass, ?> member : entity.getMembers())
+      {
+         if (member.hasAnnotation(Id.class))
+         {
+            String name = member.getName();
+            String type = null;
+            if (member instanceof Method)
+            {
+               type = ((Method) member).getReturnType();
+               if (name.startsWith("get"))
+               {
+                  name = name.substring(2);
+               }
+            } else if (member instanceof Field)
+            {
+               type = ((Field) member).getType();
+            }
+
+            if (type != null)
+            {
+               for (Method<JavaClass> method : entity.getMethods())
+               {
+                  // It's a setter
+                  if (method.getParameters().size() == 1 && method.getReturnType() == null)
+                  {
+                     Parameter param = method.getParameters().get(0);
+
+                     // The type matches ID field's type
+                     if (type.equals(param.getType()))
+                     {
+                        if (method.getName().toLowerCase().contains(name))
+                        {
+                           result = method.getName() + "(id)";
+                           break;
+                        }
+                     }
+                  }
+               }
+            }
+
+            if (result != null)
+            {
+               break;
+            } else if (type != null && result == null && member.isPublic())
+            {
+               // Cheat a little if the member is public
+               result = member.getName() + "= id";
+            }
+         }
+      }
+
+      if (result == null)
+      {
+         result = "setId(id)";
+      }
+
+      return result;
    }
 
    private String getEntityTable(final JavaClass entity)
@@ -169,8 +296,7 @@ public class RestPlugin implements Plugin
          if (!Strings.isNullOrEmpty(a.getStringValue("name")))
          {
             table = a.getStringValue("name");
-         }
-         else if (!Strings.isNullOrEmpty(a.getStringValue()))
+         } else if (!Strings.isNullOrEmpty(a.getStringValue()))
          {
             table = a.getStringValue();
          }
@@ -179,12 +305,12 @@ public class RestPlugin implements Plugin
    }
 
    private List<JavaResource> selectTargets(final PipeOut out, Resource<?>[] targets)
-            throws FileNotFoundException
+           throws FileNotFoundException
    {
       List<JavaResource> results = new ArrayList<JavaResource>();
       if (targets == null)
       {
-         targets = new Resource<?>[] {};
+         targets = new Resource<?>[]{};
       }
       for (Resource<?> r : targets)
       {
@@ -196,13 +322,11 @@ public class RestPlugin implements Plugin
                if (entity.hasAnnotation(Entity.class))
                {
                   results.add((JavaResource) r);
-               }
-               else
+               } else
                {
                   displaySkippingResourceMsg(out, entity);
                }
-            }
-            else
+            } else
             {
                displaySkippingResourceMsg(out, entity);
             }
@@ -216,7 +340,8 @@ public class RestPlugin implements Plugin
       if (!out.isPiped())
       {
          ShellMessages.info(out, "Skipped non-@Entity Java resource ["
-                  + entity.getQualifiedName() + "]");
+                 + entity.getQualifiedName() + "]");
       }
    }
 }
+

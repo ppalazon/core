@@ -49,8 +49,7 @@ public class EJBFacetImpl extends BaseJavaEEFacet implements EJBFacet
    protected List<Dependency> getRequiredDependencies()
    {
       return Arrays.asList(
-               (Dependency) DependencyBuilder.create("org.jboss.spec.javax.ejb:jboss-ejb-api_3.1_spec"),
-               DependencyBuilder.create("org.jboss.spec.javax.transaction:jboss-transaction-api_1.1_spec")
+               (Dependency) DependencyBuilder.create("org.jboss.spec.javax.ejb:jboss-ejb-api_3.1_spec")
                );
    }
 }

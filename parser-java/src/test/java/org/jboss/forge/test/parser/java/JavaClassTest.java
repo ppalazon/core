@@ -35,6 +35,7 @@ import org.jboss.forge.parser.JavaParser;
 import org.jboss.forge.parser.java.Import;
 import org.jboss.forge.parser.java.JavaClass;
 import org.jboss.forge.parser.java.Method;
+import org.jboss.forge.test.parser.java.util.OSUtils;
 import org.junit.Before;
 import org.junit.Test;
 
@@ -75,7 +76,7 @@ public class JavaClassTest
       String output = javaClass.toString();
 
       assertTrue(output.contains(
-               "Telephone" + System.getProperty("line.separator") +
+               "Telephone" + "\n" +
                         "{"
                ));
       assertTrue(output.contains(
@@ -319,7 +320,7 @@ public class JavaClassTest
       assertEquals("Super", source.getSuperType());
 
       source.setSuperType(getClass());
-      assertEquals(getClass().getSimpleName(), source.getSuperType());
+      assertEquals(getClass().getName(), source.getSuperType());
    }
 
    @Test
@@ -329,6 +330,6 @@ public class JavaClassTest
       assertEquals("java.lang.Integer", source.getSuperType());
 
       source.setSuperType(getClass());
-      assertEquals(getClass().getSimpleName(), source.getSuperType());
+      assertEquals(getClass().getName(), source.getSuperType());
    }
 }

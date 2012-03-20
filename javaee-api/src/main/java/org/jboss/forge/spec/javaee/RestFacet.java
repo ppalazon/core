@@ -26,23 +26,11 @@ import org.jboss.forge.project.Project;
 
 /**
  * If installed, this {@link Project} supports features from the JAX-RS specification.
- * 
+ *
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
 public interface RestFacet extends Facet
 {
-   /**
-    * Get the root web-path from which REST requests should be serviced.
-    */
-   public String getApplicationPath();
-
-   /**
-    * Set the root web-path from which REST requests should be serviced.
-    */
-   public void setApplicationPath(String path);
-
-   /**
-    * Get the {@link RestActivatorType} with which this application was configured.
-    */
-   public RestActivatorType getApplicationActivatorType();
+    public static final String ROOTPATH = "rootpath";
+    public String getApplicationPath();
 }

@@ -21,8 +21,11 @@
  */
 package org.jboss.forge.env;
 
+import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
+import org.jboss.forge.project.Project;
+import org.jboss.forge.project.facets.events.InstallFacets;
 import org.jboss.forge.project.packaging.PackagingType;
 import org.jboss.forge.test.AbstractShellTest;
 import org.junit.After;
@@ -41,6 +44,49 @@ public class ConfigurationImplTest extends AbstractShellTest
    private Configuration config;
 
    @Test
+   public void testAccessUserConfigurationOutsideOfProject() throws Exception
+   {
+      getShell().setCurrentResource(createTempFolder());
+      String string = config.getString(key);
+      Assert.assertNull(string);
+
+      config.setProperty(key, "bar");
+      config.getScopedConfiguration(ConfigurationScope.USER);
+      Assert.assertNotNull(config);
+   }
+
+   @Test
+   public void testAccessProjectConfigurationOutsideOfProject() throws Exception
+   {
+      getShell().setCurrentResource(createTempFolder());
+      String string = config.getString(key);
+      Assert.assertNull(string);
+
+      config.setProperty(key, "bar");
+      try
+      {
+         config.getScopedConfiguration(ConfigurationScope.PROJECT);
+         Assert.fail();
+      }
+      catch (Exception e)
+      {
+      }
+   }
+   
+   @Inject
+   private Event<InstallFacets> installFacets;
+
+   @Test
+   public void testAccessProjectConfigurationDuringProjectInitialization() throws Exception
+   {
+      config.clearProperty(MockConfigFacet.INSTALLED);
+      Project project = initializeProject(PackagingType.JAR);
+      installFacets.fire(new InstallFacets(MockConfigFacet.class));
+      Assert.assertTrue(project.hasFacet(MockConfigFacet.class));
+      config.clearProperty(MockConfigFacet.INSTALLED);
+   }
+
+   @Test
    public void testSettingDefaultConfigChoosesProjectOverUser() throws Exception
    {
       initializeProject(PackagingType.WAR);
@@ -50,8 +96,8 @@ public class ConfigurationImplTest extends AbstractShellTest
       config.setProperty(key, "bar");
 
       /*
-       * By default, the write operations will persist to the first delegate (PROJECT), 
-       * if no project is available they will persist to the next delegate (user settings)
+       * By default, the write operations will persist to the first delegate (PROJECT), if no project is available they
+       * will persist to the next delegate (user settings)
        */
       Configuration userConfig = config.getScopedConfiguration(ConfigurationScope.USER);
       Configuration projectConfig = config.getScopedConfiguration(ConfigurationScope.PROJECT);

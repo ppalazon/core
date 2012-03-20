@@ -34,6 +34,8 @@ import javax.persistence.OneToOne;
 
 import junit.framework.TestCase;
 
+import org.jboss.forge.env.Configuration;
+import org.jboss.forge.shell.env.ConfigurationAdapter;
 import org.metawidget.inspector.annotation.MetawidgetAnnotationInspector;
 import org.metawidget.inspector.annotation.UiComesAfter;
 import org.metawidget.inspector.composite.CompositeInspector;
@@ -58,12 +60,14 @@ public class EntityWidgetBuilderTest
    // Public methods
    //
 
+   EntityWidgetBuilderConfig config = new EntityWidgetBuilderConfig().setConfig(new MockForgeConfiguration());
+
    public void testManyToOne()
             throws Exception
    {
       StaticHtmlMetawidget metawidget = new StaticHtmlMetawidget();
       metawidget.setValue("#{foo}");
-      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder();
+      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder(this.config);
       Map<String, String> attributes = CollectionUtils.newHashMap();
       attributes.put(NAME, "bar");
       attributes.put(TYPE, Bar.class.getName());
@@ -84,7 +88,7 @@ public class EntityWidgetBuilderTest
       StaticHtmlMetawidget metawidget = new StaticHtmlMetawidget();
       metawidget.setValue("#{foo}");
       metawidget.setPath(FooOneToOne.class.getName());
-      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder();
+      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder(new EntityWidgetBuilderConfig());
       Map<String, String> attributes = CollectionUtils.newHashMap();
       attributes.put(NAME, "bar");
       attributes.put(TYPE, Bar.class.getName());
@@ -122,7 +126,7 @@ public class EntityWidgetBuilderTest
       StaticHtmlMetawidget metawidget = new StaticHtmlMetawidget();
       metawidget.setValue("#{foo}");
       metawidget.setPath(FooOneToOne.class.getName());
-      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder();
+      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder(new EntityWidgetBuilderConfig());
       Map<String, String> attributes = CollectionUtils.newHashMap();
       attributes.put(NAME, "bar");
       attributes.put(TYPE, Bar.class.getName());
@@ -149,7 +153,7 @@ public class EntityWidgetBuilderTest
       StaticHtmlMetawidget metawidget = new StaticHtmlMetawidget();
       metawidget.setValue("#{foo}");
       metawidget.setPath(FooOneToOne.class.getName());
-      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder();
+      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder(new EntityWidgetBuilderConfig());
       Map<String, String> attributes = CollectionUtils.newHashMap();
       attributes.put(NAME, "bar");
       attributes.put(TYPE, Bar.class.getName());
@@ -165,7 +169,7 @@ public class EntityWidgetBuilderTest
       StaticHtmlMetawidget metawidget = new StaticHtmlMetawidget();
       metawidget.setValue("#{foo}");
       metawidget.setPath(FooOneToOne.class.getName());
-      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder();
+      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder(new EntityWidgetBuilderConfig());
       Map<String, String> attributes = CollectionUtils.newHashMap();
       attributes.put(NAME, "bar");
       attributes.put(TYPE, Bar.class.getName());
@@ -199,7 +203,7 @@ public class EntityWidgetBuilderTest
    {
       StaticHtmlMetawidget metawidget = new StaticHtmlMetawidget();
       metawidget.setValue("#{foo}");
-      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder();
+      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder(this.config);
       Map<String, String> attributes = CollectionUtils.newHashMap();
       attributes.put(NAME, "bars");
       attributes.put(TYPE, List.class.getName());
@@ -227,7 +231,7 @@ public class EntityWidgetBuilderTest
    {
       StaticHtmlMetawidget metawidget = new StaticHtmlMetawidget();
       metawidget.setValue("#{foo}");
-      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder();
+      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder(this.config);
       Map<String, String> attributes = CollectionUtils.newHashMap();
       attributes.put(NAME, "bars");
       attributes.put(TYPE, Set.class.getName());
@@ -308,7 +312,7 @@ public class EntityWidgetBuilderTest
    {
       StaticHtmlMetawidget metawidget = new StaticHtmlMetawidget();
       metawidget.setValue("#{foo}");
-      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder();
+      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder(this.config);
       Map<String, String> attributes = CollectionUtils.newHashMap();
       attributes.put(NAME, "bars");
       attributes.put(TYPE, Set.class.getName());
@@ -371,7 +375,7 @@ public class EntityWidgetBuilderTest
 
       metawidget.setInspector(inspector);
       metawidget.setValue("#{foo}");
-      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder();
+      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder(this.config);
       Map<String, String> attributes = CollectionUtils.newHashMap();
       attributes.put(NAME, "bars");
       attributes.put(TYPE, Set.class.getName());
@@ -408,7 +412,7 @@ public class EntityWidgetBuilderTest
 
       StaticHtmlMetawidget metawidget = new StaticHtmlMetawidget();
       metawidget.setValue("#{foo}");
-      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder();
+      EntityWidgetBuilder widgetBuilder = new EntityWidgetBuilder(new EntityWidgetBuilderConfig());
       Map<String, String> attributes = CollectionUtils.newHashMap();
       attributes.put(NAME, "bar");
       attributes.put(TYPE, boolean.class.getName());
@@ -421,6 +425,22 @@ public class EntityWidgetBuilderTest
 
       String result = "<h:outputText styleClass=\"#{foo.bar ? 'boolean-true' : 'boolean-false'}\"/>";
       assertEquals(result, widget.toString());
+   }
+
+   public void testConfig()
+   {
+      EntityWidgetBuilderConfig config1 = new EntityWidgetBuilderConfig();
+      EntityWidgetBuilderConfig config2 = new EntityWidgetBuilderConfig();
+
+      assertTrue(config1.equals(config2));
+      assertEquals(config1.hashCode(), config2.hashCode());
+      assertTrue(!config1.equals("Foo"));
+      Configuration forgeConfig = new ConfigurationAdapter(null);
+      config1.setConfig(forgeConfig);
+      assertTrue(!config1.equals(config2));
+      config2.setConfig(forgeConfig);
+      assertTrue(config1.equals(config2));
+      assertEquals(config1.hashCode(), config2.hashCode());
    }
 
    //

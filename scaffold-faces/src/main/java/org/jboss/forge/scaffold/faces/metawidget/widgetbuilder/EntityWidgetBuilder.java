@@ -29,6 +29,9 @@ import java.util.Collection;
 import java.util.List;
 import java.util.Map;
 
+import org.jboss.forge.env.Configuration;
+import org.jboss.forge.parser.java.util.Strings;
+import org.jboss.forge.scaffold.faces.FacesScaffold;
 import org.metawidget.statically.BaseStaticXmlWidget;
 import org.metawidget.statically.StaticWidget;
 import org.metawidget.statically.StaticXmlMetawidget;
@@ -84,6 +87,21 @@ public class EntityWidgetBuilder
 
    private static final String TOP_LEVEL_PARAMETERIZED_TYPE = "top-level-parameterized-type";
 
+   /**
+    * Current Forge Configuration. Useful to retrieve <code>targetDir</code>.
+    */
+
+   private final Configuration config;
+
+   //
+   // Constructor
+   //
+
+   public EntityWidgetBuilder(EntityWidgetBuilderConfig config)
+   {
+      this.config = config.getConfig();
+   }
+
    //
    // Public methods
    //
@@ -123,7 +141,7 @@ public class EntityWidgetBuilder
             controllerName = StringUtils.decapitalize(controllerName);
 
             HtmlOutcomeTargetLink link = new HtmlOutcomeTargetLink();
-            link.putAttribute("outcome", "/scaffold/" + controllerName + "/view");
+            link.putAttribute("outcome", "/" + getTargetDir() + "/" + controllerName + "/view");
 
             StandardBindingProcessor bindingProcessor = metawidget.getWidgetProcessor(StandardBindingProcessor.class);
 
@@ -133,10 +151,12 @@ public class EntityWidgetBuilder
                         (StaticUIMetawidget) metawidget);
             }
 
+            String reverseKey = getReversePrimaryKey(attributes);
+            
             Param param = new Param();
             param.putAttribute("name", "id");
             param.putAttribute("value",
-                     StaticFacesUtils.wrapExpression(StaticFacesUtils.unwrapExpression(link.getValue()) + ".id"));
+                     StaticFacesUtils.wrapExpression(StaticFacesUtils.unwrapExpression(link.getValue()) + "." + reverseKey));
             link.getChildren().add(param);
 
             return link;
@@ -190,7 +210,7 @@ public class EntityWidgetBuilder
             metawidget.initNestedMetawidget(nestedMetawidget, attributes);
             String unwrappedExpression = StaticFacesUtils.unwrapExpression(nestedMetawidget.getValue());
             nestedMetawidget.putAttribute("rendered",
-                        StaticFacesUtils.wrapExpression("!empty " + unwrappedExpression));
+                     StaticFacesUtils.wrapExpression("!empty " + unwrappedExpression));
 
             // If read-only we're done
 
@@ -208,9 +228,9 @@ public class EntityWidgetBuilder
             HtmlCommandLink commandLink = new HtmlCommandLink();
             commandLink.setValue("Create New " + StringUtils.uncamelCase(childExpression));
             commandLink.putAttribute(
-                        "action",
-                        StaticFacesUtils.wrapExpression(parentExpression + ".new"
-                                 + StringUtils.capitalize(childExpression)));
+                     "action",
+                     StaticFacesUtils.wrapExpression(parentExpression + ".new"
+                              + StringUtils.capitalize(childExpression)));
             commandLink.putAttribute("rendered", StaticFacesUtils.wrapExpression("empty " + unwrappedExpression));
 
             HtmlPanelGroup panelGroup = new HtmlPanelGroup();
@@ -229,6 +249,7 @@ public class EntityWidgetBuilder
             }
          }
       }
+
       // Delegate to next WidgetBuilder in the chain
 
       return null;
@@ -237,6 +258,27 @@ public class EntityWidgetBuilder
    //
    // Protected methods
    //
+
+   protected String getReversePrimaryKey(Map<String, String> attributes) {
+      String reverseKey = "id";
+      if (attributes.containsKey(REVERSE_PRIMARY_KEY)) 
+         reverseKey = attributes.get(REVERSE_PRIMARY_KEY);
+      return reverseKey;
+   }
+
+   protected String getPrimaryKey(Map<String, String> attributes) {
+      String reverseKey = "id";
+      if (attributes.containsKey(PRIMARY_KEY)) 
+         reverseKey = attributes.get(PRIMARY_KEY);
+      return reverseKey;
+   }
+
+   protected String getEntityPrimaryKey(Map<String, String> attributes) {
+      String reverseKey = "id";
+      if (attributes.containsKey(ENTITY_PRIMARY_KEY)) 
+         reverseKey = attributes.get(ENTITY_PRIMARY_KEY);
+      return reverseKey;
+   }
 
    /**
     * Overridden to add row creation/deletion.
@@ -516,13 +558,13 @@ public class EntityWidgetBuilder
          // Create a link...
 
          HtmlOutcomeTargetLink link = new HtmlOutcomeTargetLink();
-         link.putAttribute("outcome", "/scaffold/" + controllerName + "/view");
+         link.putAttribute("outcome", "/" + getTargetDir() + "/" + controllerName + "/view");
 
          // ...pointing to the id
 
          Param param = new Param();
          param.putAttribute("name", "id");
-         param.putAttribute("value", StaticFacesUtils.wrapExpression(dataTable.getAttribute("var") + ".id"));
+         param.putAttribute("value", StaticFacesUtils.wrapExpression(dataTable.getAttribute("var") + "." + getEntityPrimaryKey(columnAttributes)));
          link.getChildren().add(param);
          link.getChildren().add(column.getChildren().remove(1));
          column.getChildren().add(link);
@@ -562,5 +604,15 @@ public class EntityWidgetBuilder
             }
          }
       }
+   }
+
+   //
+   // Private methods
+   //
+
+   private String getTargetDir()
+   {
+      String targetDir = this.config.getString(FacesScaffold.class.getName() + "_targetDir");
+      return Strings.isNullOrEmpty(targetDir) ? "scaffold" : targetDir;
    }
 }
