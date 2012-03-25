@@ -55,6 +55,7 @@ import org.metawidget.statically.faces.component.html.widgetbuilder.HtmlSelectOn
 import org.metawidget.statically.faces.component.html.widgetbuilder.HtmlWidgetBuilder;
 import org.metawidget.statically.faces.component.html.widgetbuilder.Param;
 import org.metawidget.statically.faces.component.widgetprocessor.ReadableIdProcessor;
+import org.metawidget.statically.faces.component.widgetprocessor.RequiredAttributeProcessor;
 import org.metawidget.statically.faces.component.widgetprocessor.StandardBindingProcessor;
 import org.metawidget.statically.layout.SimpleLayout;
 import org.metawidget.util.ClassUtils;
@@ -141,7 +142,7 @@ public class EntityWidgetBuilder
             controllerName = StringUtils.decapitalize(controllerName);
 
             HtmlOutcomeTargetLink link = new HtmlOutcomeTargetLink();
-            link.putAttribute("outcome", "/" + getTargetDir() + "/" + controllerName + "/view");
+            link.putAttribute("outcome", getTargetDir() + "/" + controllerName + "/view");
 
             StandardBindingProcessor bindingProcessor = metawidget.getWidgetProcessor(StandardBindingProcessor.class);
 
@@ -558,7 +559,7 @@ public class EntityWidgetBuilder
          // Create a link...
 
          HtmlOutcomeTargetLink link = new HtmlOutcomeTargetLink();
-         link.putAttribute("outcome", "/" + getTargetDir() + "/" + controllerName + "/view");
+         link.putAttribute("outcome", getTargetDir() + "/" + controllerName + "/view");
 
          // ...pointing to the id
 
@@ -581,6 +582,10 @@ public class EntityWidgetBuilder
                StaticHtmlMetawidget footerMetawidget = new StaticHtmlMetawidget();
                Map<String, String> footerAttributes = CollectionUtils.newHashMap();
                metawidget.initNestedMetawidget(footerMetawidget, footerAttributes);
+
+               // (footer facets should never have a 'required' attribute)
+
+               footerMetawidget.removeWidgetProcessor(footerMetawidget.getWidgetProcessor(RequiredAttributeProcessor.class));
                footerMetawidget.setValue(StaticFacesUtils.wrapExpression(controllerName + "Bean.add." + columnName));
                footerMetawidget.setPath(componentType + StringUtils.SEPARATOR_FORWARD_SLASH_CHAR + columnName);
                footerMetawidget.setLayout(new SimpleLayout());
@@ -612,7 +617,15 @@ public class EntityWidgetBuilder
 
    private String getTargetDir()
    {
-      String targetDir = this.config.getString(FacesScaffold.class.getName() + "_targetDir");
-      return Strings.isNullOrEmpty(targetDir) ? "scaffold" : targetDir;
+      String target = this.config.getString(FacesScaffold.class.getName() + "_targetDir");
+
+      target = Strings.isNullOrEmpty(target) ? "" : target;
+      
+      if (!target.startsWith("/"))
+         target = "/" + target;
+      if (target.endsWith("/"))
+         target = target.substring(0, target.length() - 1);
+      
+      return target;
    }
 }
