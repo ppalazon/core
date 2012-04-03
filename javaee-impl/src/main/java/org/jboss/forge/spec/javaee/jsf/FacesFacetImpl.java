@@ -36,6 +36,8 @@ import java.util.regex.Pattern;
 
 import javax.inject.Inject;
 
+import org.jboss.forge.parser.xml.Node;
+import org.jboss.forge.parser.xml.XMLParser;
 import org.jboss.forge.project.dependencies.Dependency;
 import org.jboss.forge.project.dependencies.DependencyInstaller;
 import org.jboss.forge.project.facets.MetadataFacet;
@@ -68,16 +70,15 @@ public class FacesFacetImpl extends BaseJavaEEFacet implements FacesFacet
 {
 
    @Inject
-   public FacesFacetImpl(final DependencyInstaller installer)
+   public FacesFacetImpl(final DependencyInstaller installer, final ShellPrintWriter out)
    {
       super(installer);
+      this.out = out;
    }
 
-   @Inject
    private ShellPrintWriter out;
 
-   @Inject
-   private ServletMappingHelper servletMappingHelper;
+   private ServletMappingHelper servletMappingHelper = new ServletMappingHelper();
 
    @Override
    public boolean isInstalled()
@@ -89,6 +90,7 @@ public class FacesFacetImpl extends BaseJavaEEFacet implements FacesFacet
    @Override
    public boolean install()
    {
+      out.println("1");
       if (!getConfigFile().exists() && !getConfigFile().createNewFile())
       {
          throw new RuntimeException("Failed to create required [" + getConfigFile().getFullyQualifiedName() + "]");
@@ -444,4 +446,73 @@ public class FacesFacetImpl extends BaseJavaEEFacet implements FacesFacet
       WebAppDescriptor webXml = facet.getConfig();
       return webXml.getFaceletsViewMappings();
    }
+
+   public static class ServletMappingHelper
+   {
+      public static final String FACES_SERVLET_CLASS = "javax.faces.webapp.FacesServlet";
+
+      public InputStream addFacesServletMapping(final InputStream webXmlStream, final String mapping)
+      {
+         Node root = XMLParser.parse(webXmlStream);
+         Node facesServlet = getOrCreateFacesServlet(root);
+         boolean mappingCreated = createMappingIfNotExists(root, facesServlet, mapping);
+         if (mappingCreated)
+         {
+            return XMLParser.toXMLInputStream(root);
+         }
+         else
+         {
+            return XMLParser.toXMLInputStream(root);
+         }
+      }
+
+      public Node getOrCreateFacesServlet(final Node root)
+      {
+         List<Node> servlets = root.get("servlet");
+         for (Node servlet : servlets)
+         {
+            if (FACES_SERVLET_CLASS.equals(servlet.getSingle("servlet-class").getText()))
+            {
+               return servlet;
+            }
+         }
+         Node servlet = root.createChild("servlet");
+         servlet.createChild("servlet-name").text("Faces Servlet");
+         servlet.createChild("servlet-class").text(FACES_SERVLET_CLASS);
+         servlet.createChild("load-on-startup").text("1");
+         return servlet;
+      }
+
+      boolean createMappingIfNotExists(final Node root, final Node servlet, final String mapping)
+      {
+         List<Node> servletMappings = root.get("servlet-mapping");
+         Node servletMappingNode = null;
+         String servletName = servlet.getSingle("servlet-name").getText();
+         for (Node servletMapping : servletMappings)
+         {
+            if (servletName.equals(servletMapping.getSingle("servlet-name").getText()))
+            {
+               servletMappingNode = servletMapping;
+               List<Node> urlPatterns = servletMapping.get("url-pattern");
+               for (Node urlPattern : urlPatterns)
+               {
+                  if (mapping.equals(urlPattern.getText()))
+                  {
+                     return false; // mapping already exists; not created
+                  }
+
+               }
+            }
+         }
+         // Mapping does not exist, create it and add the url-pattern
+         if (servletMappingNode == null)
+         {
+            servletMappingNode = root.createChild("servlet-mapping");
+            servletMappingNode.createChild("servlet-name").text(servletName);
+         }
+         servletMappingNode.createChild("url-pattern").text(mapping);
+         return true;
+      }
+   }
+
 }
