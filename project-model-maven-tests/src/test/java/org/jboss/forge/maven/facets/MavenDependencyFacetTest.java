@@ -22,10 +22,6 @@
 
 package org.jboss.forge.maven.facets;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertTrue;
-
 import java.util.List;
 
 import org.jboss.arquillian.container.test.api.Deployment;
@@ -39,6 +35,10 @@ import org.jboss.shrinkwrap.api.spec.JavaArchive;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
+import static org.junit.Assert.assertTrue;
 
 /**
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
@@ -124,6 +124,22 @@ public class MavenDependencyFacetTest extends ProjectModelTest
       assertEquals(version, deps.getProperty("version"));
    }
 
+    @Test
+    public void testAddDependencyUsingProperty() throws Exception {
+        DependencyFacet deps = getProject().getFacet(DependencyFacet.class);
+
+        deps.setProperty("jboss.spec.version", "3.0.0.Final");
+
+        DependencyBuilder newDep = DependencyBuilder.create();
+        newDep.setGroupId("org.jboss.spec");
+        newDep.setArtifactId("jboss-javaee-6.0");
+        newDep.setVersion("${jboss.spec.version}");
+
+        deps.addDirectDependency(newDep);
+
+        assertTrue(deps.hasDirectDependency(newDep));
+    }
+
    @Test
    @Ignore
    public void testDoResolveVersions() throws Exception
@@ -180,7 +196,7 @@ public class MavenDependencyFacetTest extends ProjectModelTest
    {
       DependencyFacet dependencyFacet = getProject().getFacet(DependencyFacet.class);
       DependencyBuilder forgeShellApiDependency = DependencyBuilder.create().setGroupId("org.jboss.forge")
-               .setArtifactId("forge-shell-api").setVersion("1.0.0-SNAPSHOT");
+               .setArtifactId("forge-shell-api").setVersion("[1.0.0-SNAPSHOT,)");
       DependencyBuilder cdiDependency = DependencyBuilder.create().setGroupId("javax.enterprise")
                .setArtifactId("cdi-api");
       assertFalse(dependencyFacet.hasEffectiveDependency(cdiDependency));
