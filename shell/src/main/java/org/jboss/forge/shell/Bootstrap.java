@@ -56,7 +56,9 @@ public class Bootstrap
 {
    
    public static final String PROP_PLUGIN_DIR = "org.jboss.forge.pluginDir";
+   public static final String PROP_EVALUATE = "org.jboss.forge.evaluate";
    private static final String ARG_PLUGIN_DIR = "-pluginDir";
+   private static final String ARG_EVALUATE = "-e";
    
    private static boolean pluginSystemEnabled = !Boolean.getBoolean("forge.plugins.disable");
    private static Thread currentShell = null;
@@ -76,12 +78,22 @@ public class Bootstrap
    
    private static void readArguments(String[] args) {
       readPluginDirArgument(args);
+      readEvaluateArgument(args);
    }
    
    private static void readPluginDirArgument(String[] args) {
       for (int i = 0; i < args.length; i++) {
          if (ARG_PLUGIN_DIR.equals(args[i]) && i + 1 < args.length) {
             System.setProperty(PROP_PLUGIN_DIR, args[i + 1]);
+            return;
+         }
+      }
+   }
+   
+   private static void readEvaluateArgument(String[] args) {
+      for (int i = 0; i < args.length; i++) {
+         if (ARG_EVALUATE.equals(args[i]) && i + 1 < args.length) {
+            System.setProperty(PROP_EVALUATE, args[i + 1]);
             return;
          }
       }
@@ -191,33 +203,19 @@ public class Bootstrap
 
          List<PluginEntry> toLoad = new ArrayList<InstalledPluginRegistry.PluginEntry>();
 
-         List<PluginEntry> installed = InstalledPluginRegistry.listByVersion(Bootstrap.class.getPackage()
-                  .getImplementationVersion());
+         List<PluginEntry> installed = InstalledPluginRegistry.listByAPICompatibleVersion(InstalledPluginRegistry.getRuntimeAPIVersion());
 
          toLoad.addAll(installed);
 
-         // Add in the SNAPSHOT versions, we can't ignore them.
          List<PluginEntry> incompatible = InstalledPluginRegistry.list();
          incompatible.removeAll(installed);
-         if (!incompatible.isEmpty())
-         {
-            List<PluginEntry> toRemove = new ArrayList<InstalledPluginRegistry.PluginEntry>();
-            for (PluginEntry pluginEntry : incompatible) {
-               if (pluginEntry.getApiVersion().contains("SNAPSHOT"))
-               {
-                  toLoad.add(pluginEntry);
-                  toRemove.add(pluginEntry);
-               }
-            }
-            incompatible.removeAll(toRemove);
-         }
 
          for (PluginEntry pluginEntry : incompatible) {
             System.out.println("Not loading plugin [" + pluginEntry.getName()
                      + "] because it references Forge API version [" + pluginEntry.getApiVersion()
                      + "] which may not be compatible with my current version [" + Bootstrap.class.getPackage()
                               .getImplementationVersion() + "]. To remove this plugin, type 'forge remove-plugin "
-                     + pluginEntry + ".");
+                     + pluginEntry + ". Otherwise, try installing a new version of the plugin.");
          }
 
          for (PluginEntry plugin : toLoad)
