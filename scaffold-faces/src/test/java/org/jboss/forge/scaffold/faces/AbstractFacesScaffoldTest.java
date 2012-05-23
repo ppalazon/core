@@ -37,9 +37,9 @@ public abstract class AbstractFacesScaffoldTest extends AbstractShellTest
    protected Project setupScaffoldProject() throws Exception
    {
       Project project = initializeJavaProject();
-      queueInputLines("HIBERNATE", "JBOSS_AS7", "");
+      queueInputLines("HIBERNATE", "JBOSS_AS7", "", "");
       getShell().execute("persistence setup");
-      queueInputLines("", "", "2", "", "", "");
+      queueInputLines("", "", "", "");
       getShell().execute("scaffold setup");
       return project;
    }
@@ -47,10 +47,18 @@ public abstract class AbstractFacesScaffoldTest extends AbstractShellTest
    protected Project setupScaffoldProject(String targetDir) throws Exception
    {
       Project project = initializeJavaProject();
-      queueInputLines("HIBERNATE", "JBOSS_AS7", "");
+      queueInputLines("HIBERNATE", "JBOSS_AS7", "", "");
       getShell().execute("persistence setup");
-      queueInputLines("", "", "2", "", "", "");
+      queueInputLines("", "", "");
       getShell().execute("scaffold setup --targetDir " + targetDir);
       return project;
+   }
+   
+   protected String normalized(StringBuilder sb) {
+      return normalized(sb.toString());
+   }
+   
+   protected String normalized(String input) {
+      return input.replaceAll("(\r|\n|\\s)+"," ");
    }
 }

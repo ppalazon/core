@@ -26,33 +26,36 @@ import org.jboss.forge.project.Project;
 import org.jboss.forge.project.locator.ProjectLocator;
 import org.jboss.forge.project.services.ProjectFactory;
 import org.jboss.forge.resources.DirectoryResource;
-import org.jboss.forge.shell.plugins.Alias;
 
 import com.google.inject.Inject;
 
 /**
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
-@Alias("default-project-locator")
 public class DefaultProjectLocator implements ProjectLocator
 {
-   @Inject
-   private ProjectFactory factory;
+    private ProjectFactory factory;
 
-   @Override
-   public Project createProject(final DirectoryResource dir)
-   {
-      Project result = null;
-      if ((dir != null) && dir.exists())
-      {
-         result = new ProjectImpl(factory, dir);
-      }
-      return result;
-   }
+    @Inject
+    public DefaultProjectLocator(final ProjectFactory factory)
+    {
+        this.factory = factory;
+    }
 
-   @Override
-   public boolean containsProject(final DirectoryResource dir)
-   {
-      return false;
-   }
+    @Override
+    public Project createProject(final DirectoryResource dir)
+    {
+        Project result = null;
+        if ((dir != null) && dir.exists())
+        {
+            result = new ProjectImpl(factory, dir);
+        }
+        return result;
+    }
+
+    @Override
+    public boolean containsProject(final DirectoryResource dir)
+    {
+        return false;
+    }
 }

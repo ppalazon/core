@@ -23,6 +23,7 @@ package org.jboss.forge.maven.locators;
 
 import java.io.File;
 
+import javax.enterprise.inject.Any;
 import javax.enterprise.inject.Instance;
 import javax.inject.Inject;
 
@@ -33,8 +34,8 @@ import org.jboss.forge.project.Project;
 import org.jboss.forge.project.locator.ProjectLocator;
 import org.jboss.forge.project.services.ProjectFactory;
 import org.jboss.forge.resources.DirectoryResource;
+import org.jboss.forge.resources.FileResource;
 import org.jboss.forge.resources.Resource;
-import org.jboss.forge.shell.plugins.Alias;
 
 /**
  * Locate a Maven project starting in the current directory, and progressing up the chain of parent directories until a
@@ -43,39 +44,44 @@ import org.jboss.forge.shell.plugins.Alias;
  * 
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
-@Alias("maven-project-locator")
 public class MavenProjectLocator implements ProjectLocator
 {
-   private final ProjectFactory factory;
-   private final Instance<MavenCoreFacet> coreFacetInstance;
+    private final ProjectFactory factory;
 
-   @Inject
-   public MavenProjectLocator(final ProjectFactory factory, final Instance<MavenCoreFacet> coreFacet)
-   {
-      this.factory = factory;
-      this.coreFacetInstance = coreFacet;
-   }
+    private final Instance<MavenCoreFacet> coreFacetInstance;
 
-   @Override
-   public Project createProject(final DirectoryResource dir)
-   {
-      Resource<?> pom = dir.getChild("pom.xml");
+    @Inject
+    public MavenProjectLocator(final ProjectFactory factory, @Any final Instance<MavenCoreFacet> coreFacet)
+    {
+        this.factory = factory;
+        this.coreFacetInstance = coreFacet;
+    }
 
-      Project result = null;
-      if (pom.exists())
-      {
-         result = new ProjectImpl(factory, dir);
-         Facet facet = coreFacetInstance.get();
-         facet.setProject(result);
-         result.registerFacet(facet);
-      }
-      return result;
-   }
+    @Override
+    public Project createProject(final DirectoryResource dir)
+    {
+        Project result = new ProjectImpl(factory, dir);
+        MavenCoreFacet maven = coreFacetInstance.get();
+        maven.setProject(result);
+        if (!maven.isInstalled())
+        {
+            result.installFacet(maven);
+        }
+        else
+            result.registerFacet(maven);
+        
+        if(!result.hasFacet(MavenCoreFacet.class))
+        {
+            throw new IllegalStateException("Could not create Maven project [MavenCoreFacet could not be installed.]");
+        }
 
-   @Override
-   public boolean containsProject(final DirectoryResource dir)
-   {
-      Resource<?> pom = dir.getChild("pom.xml");
-      return pom.exists();
-   }
+        return result;
+    }
+
+    @Override
+    public boolean containsProject(final DirectoryResource dir)
+    {
+        Resource<?> pom = dir.getChild("pom.xml");
+        return pom.exists();
+    }
 }

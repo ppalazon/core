@@ -86,9 +86,9 @@ public class FacesScaffoldShoppingTest extends AbstractFacesScaffoldTest
                "field oneToMany --named orders --fieldType com.test.model.SubmittedOrder --inverseFieldName customer");
       getShell().execute("field oneToOne --named profile --fieldType com.test.model.Profile");
 
-      queueInputLines("", "", "", "", "");
+      //queueInputLines("", "", "", "", "");
       getShell()
-               .execute("scaffold from-entity com.test.model.*");
+               .execute("scaffold from-entity com.test.model.* --overwrite");
 
       JavaSourceFacet java = project.getFacet(JavaSourceFacet.class);
       WebResourceFacet web = project.getFacet(WebResourceFacet.class);
@@ -145,13 +145,13 @@ public class FacesScaffoldShoppingTest extends AbstractFacesScaffoldTest
       contents = Streams.toString(customerBean.getResourceInputStream());
 
       StringBuilder qbeMetawidget = new StringBuilder(
-               "\t\tString City = this.search.getCity();\r\n");
-      qbeMetawidget.append("\t\tif (City != null && !\"\".equals(City)) {\r\n");
+               "      String City = this.search.getCity();\n");
+      qbeMetawidget.append("      if (City != null && !\"\".equals(City)) {\n");
       qbeMetawidget
-               .append("\t\t\tpredicatesList.add(builder.like(root.<String>get(\"City\"), '%' + City + '%'));\r\n");
-      qbeMetawidget.append("\t\t}\r\n");
+               .append("         predicatesList.add(builder.like(root.<String> get(\"City\"), '%' + City + '%'));\n");
+      qbeMetawidget.append("      }\n");
 
-      Assert.assertTrue(contents.contains(qbeMetawidget));
+      Assert.assertTrue(normalized(contents).contains(normalized(qbeMetawidget)));
 
       // Deploy to a real container and test
 

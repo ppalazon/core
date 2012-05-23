@@ -31,8 +31,6 @@ import org.jboss.forge.shell.events.CommandExecuted;
  * Display a "Please wait" spinner for the user, until cancelled. It is a good idea to wrap usage of {@link Wait} in a
  * try-finally block to ensure that the wait is always completed.
  * 
- * TODO Create a cleanup mechanism for these on command execution.
- * 
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  * @author <a href="mailto:koen.aers@gmail.com">Koen Aers</a>
  */
@@ -118,9 +116,9 @@ public class Wait
     {
         if (isWaiting())
         {
-            complete = true;
             shell.println();
         }
+        complete = true;
     }
 
     /**

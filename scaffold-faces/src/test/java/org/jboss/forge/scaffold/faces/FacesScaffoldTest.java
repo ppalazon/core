@@ -99,7 +99,7 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
    public void testScaffoldSetupWithScaffoldTypeWithoutTargetDir() throws Exception
    {
        Project project = initializeJavaProject();
-       queueInputLines("HIBERNATE", "JBOSS_AS7", "");
+       queueInputLines("HIBERNATE", "JBOSS_AS7", "", "");
        getShell().execute("persistence setup");
        queueInputLines("", "", "2", "", "", "");
        getShell().execute("scaffold setup --scaffoldType faces");
@@ -110,7 +110,7 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
    public void testScaffoldSetupWithScaffoldTypeAndTargetDir() throws Exception
    {
        Project project = initializeJavaProject();
-       queueInputLines("HIBERNATE", "JBOSS_AS7", "");
+       queueInputLines("HIBERNATE", "JBOSS_AS7", "", "");
        getShell().execute("persistence setup");
        queueInputLines("", "", "2", "", "", "");
        getShell().execute("scaffold setup --scaffoldType faces --targetDir store");
@@ -122,7 +122,7 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
    {
       initializeJavaProject();
 
-      queueInputLines("");
+      queueInputLines("", "");
       getShell().execute("persistence setup --provider HIBERNATE  --container JBOSS_AS7");
 
       queueInputLines("");
@@ -255,26 +255,26 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
       Assert.assertTrue(customerBean.exists());
       contents = Streams.toString(customerBean.getResourceInputStream());
 
-      Assert.assertTrue(contents.contains("\tprivate Customer customer;"));
+      Assert.assertTrue(contents.contains("  private Customer customer;"));
 
       StringBuilder qbeMetawidget = new StringBuilder();
-      qbeMetawidget.append("\t\t"  ).append("List<Predicate> predicatesList = new ArrayList<Predicate>();"                               ).append(crlf);
-      qbeMetawidget.append(""      ).append(""                                                                                           ).append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("String firstName = this.search.getFirstName();"                                             ).append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("if (firstName != null && !\"\".equals(firstName)) {"                                        ).append(crlf);
-      qbeMetawidget.append("\t\t\t").append(  "predicatesList.add(builder.like(root.<String>get(\"firstName\"), '%' + firstName + '%'));").append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("}"                                                                                          ).append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("String lastName = this.search.getLastName();"                                               ).append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("if (lastName != null && !\"\".equals(lastName)) {"                                          ).append(crlf);
-      qbeMetawidget.append("\t\t\t").append(  "predicatesList.add(builder.like(root.<String>get(\"lastName\"), '%' + lastName + '%'));"  ).append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("}"                                                                                          ).append(crlf);
-      qbeMetawidget.append(""      ).append(""                                                                                           ).append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("return "                                                                                    );
+      qbeMetawidget.append("      "   ).append("List<Predicate> predicatesList = new ArrayList<Predicate>();"                               ).append(crlf);
+      qbeMetawidget.append(""         ).append(""                                                                                           ).append(crlf);
+      qbeMetawidget.append("      "   ).append("String firstName = this.search.getFirstName();"                                             ).append(crlf);
+      qbeMetawidget.append("      "   ).append("if (firstName != null && !\"\".equals(firstName)) {"                                        ).append(crlf);
+      qbeMetawidget.append("         ").append(  "predicatesList.add(builder.like(root.<String> get(\"firstName\"), '%' + firstName + '%'));").append(crlf);
+      qbeMetawidget.append("      "   ).append("}"                                                                                          ).append(crlf);
+      qbeMetawidget.append("      "   ).append("String lastName = this.search.getLastName();"                                               ).append(crlf);
+      qbeMetawidget.append("      "   ).append("if (lastName != null && !\"\".equals(lastName)) {"                                          ).append(crlf);
+      qbeMetawidget.append("         ").append(  "predicatesList.add(builder.like(root.<String> get(\"lastName\"), '%' + lastName + '%'));"  ).append(crlf);
+      qbeMetawidget.append("      "   ).append("}"                                                                                          ).append(crlf);
+      qbeMetawidget.append(""         ).append(""                                                                                           ).append(crlf);
+      qbeMetawidget.append("      "   ).append("return "                                                                                    );
 
-      Assert.assertTrue(contents.contains(qbeMetawidget));
+      Assert.assertTrue(normalized(contents).contains(normalized(qbeMetawidget)));
 
-      Assert.assertTrue(contents.contains("\tprivate Customer add = new Customer();"));
-      Assert.assertTrue(contents.contains("\t\tthis.add = new Customer();"));
+      Assert.assertTrue(contents.contains("private Customer add = new Customer();"));
+      Assert.assertTrue(contents.contains("this.add = new Customer();"));
 
       // ViewUtils
 
@@ -705,17 +705,17 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
       contents = Streams.toString(customerBean.getResourceInputStream());
 
       StringBuilder qbeMetawidget = new StringBuilder();
-      qbeMetawidget.append("\t\t"  ).append("Employer employer = this.search.getEmployer();"                        ).append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("if (employer != null) {"                                               ).append(crlf);
-      qbeMetawidget.append("\t\t\t").append(  "predicatesList.add(builder.equal(root.get(\"employer\"), employer));").append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("}"                                                                     ).append(crlf);
+      qbeMetawidget.append("  "     ).append("Employer employer = this.search.getEmployer();"                      ).append(crlf);
+      qbeMetawidget.append("    "   ).append("if (employer != null) {"                                             ).append(crlf);
+      qbeMetawidget.append("       ").append("predicatesList.add(builder.equal(root.get(\"employer\"), employer));").append(crlf);
+      qbeMetawidget.append("    "   ).append("}"                                                                   ).append(crlf);
 
-      Assert.assertTrue(contents.contains(qbeMetawidget));
+      Assert.assertTrue(normalized(contents).contains(normalized(qbeMetawidget)));
       
       StringBuilder expectedContent = new StringBuilder();
       expectedContent.append("import com.test.model.Customer;").append(crlf);
       expectedContent.append("import com.test.model.Employer;").append(crlf);
-      Assert.assertTrue(contents.contains(expectedContent));
+      Assert.assertTrue(normalized(contents).contains(normalized(expectedContent)));
    }
 
    @Test
@@ -1229,30 +1229,30 @@ public class FacesScaffoldTest extends AbstractFacesScaffoldTest
       Assert.assertTrue(customerBean.exists());
       contents = Streams.toString(customerBean.getResourceInputStream());
 
-      Assert.assertTrue(contents.contains("\n\tprivate Customer customer;"));
+      Assert.assertTrue(contents.contains("private Customer customer;"));
 
       StringBuilder qbeMetawidget = new StringBuilder();
-      qbeMetawidget.append("\t\t"  ).append("List<Predicate> predicatesList = new ArrayList<Predicate>();"                               ).append(crlf);
-      qbeMetawidget.append(""      ).append(""                                                                                           ).append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("String firstName = this.search.getFirstName();"                                             ).append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("if (firstName != null && !\"\".equals(firstName)) {"                                        ).append(crlf);
-      qbeMetawidget.append("\t\t\t").append(  "predicatesList.add(builder.like(root.<String>get(\"firstName\"), '%' + firstName + '%'));").append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("}"                                                                                          ).append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("String lastName = this.search.getLastName();"                                               ).append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("if (lastName != null && !\"\".equals(lastName)) {"                                          ).append(crlf);
-      qbeMetawidget.append("\t\t\t").append(  "predicatesList.add(builder.like(root.<String>get(\"lastName\"), '%' + lastName + '%'));"  ).append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("}"                                                                                          ).append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("RatingEnum rating = this.search.getRating();"                                               ).append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("if (rating != null) {"                                                                      ).append(crlf);
-      qbeMetawidget.append("\t\t\t").append(  "predicatesList.add(builder.equal(root.get(\"rating\"), rating));"                         ).append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("}"                                                                                          ).append(crlf);
-      qbeMetawidget.append(""       ).append(""                                                                                          ).append(crlf);
-      qbeMetawidget.append("\t\t"  ).append("return ");
+      qbeMetawidget.append("      "   ).append("List<Predicate> predicatesList = new ArrayList<Predicate>();"                                ).append(crlf);
+      qbeMetawidget.append(""         ).append(""                                                                                            ).append(crlf);
+      qbeMetawidget.append("      "   ).append("String firstName = this.search.getFirstName();"                                              ).append(crlf);
+      qbeMetawidget.append("      "   ).append("if (firstName != null && !\"\".equals(firstName)) {"                                         ).append(crlf);
+      qbeMetawidget.append("         ").append(  "predicatesList.add(builder.like(root.<String> get(\"firstName\"), '%' + firstName + '%'));").append(crlf);
+      qbeMetawidget.append("      "   ).append("}"                                                                                           ).append(crlf);
+      qbeMetawidget.append("      "   ).append("String lastName = this.search.getLastName();"                                                ).append(crlf);
+      qbeMetawidget.append("      "   ).append("if (lastName != null && !\"\".equals(lastName)) {"                                           ).append(crlf);
+      qbeMetawidget.append("         ").append(  "predicatesList.add(builder.like(root.<String> get(\"lastName\"), '%' + lastName + '%'));"  ).append(crlf);
+      qbeMetawidget.append("      "   ).append("}"                                                                                           ).append(crlf);
+      qbeMetawidget.append("      "   ).append("RatingEnum rating = this.search.getRating();"                                                ).append(crlf);
+      qbeMetawidget.append("      "   ).append("if (rating != null) {"                                                                       ).append(crlf);
+      qbeMetawidget.append("         ").append(  "predicatesList.add(builder.equal(root.get(\"rating\"), rating));"                          ).append(crlf);
+      qbeMetawidget.append("      "   ).append("}"                                                                                           ).append(crlf);
+      qbeMetawidget.append(""         ).append(""                                                                                            ).append(crlf);
+      qbeMetawidget.append("      "   ).append("return ");
 
-      Assert.assertTrue(contents.contains(qbeMetawidget));
+      Assert.assertTrue(normalized(contents).contains(normalized(qbeMetawidget)));
 
-      Assert.assertTrue(contents.contains("\n\tprivate Customer add = new Customer();"));
-      Assert.assertTrue(contents.contains("\n\t\tthis.add = new Customer();"));
+      Assert.assertTrue(contents.contains("private Customer add = new Customer();"));
+      Assert.assertTrue(contents.contains("this.add = new Customer();"));
 
       // ViewUtils
 
