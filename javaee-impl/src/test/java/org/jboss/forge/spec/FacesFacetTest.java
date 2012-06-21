@@ -38,7 +38,6 @@ import org.jboss.forge.resources.FileResource;
 import org.jboss.forge.spec.javaee.FacesAPIFacet;
 import org.jboss.forge.spec.javaee.FacesFacet;
 import org.jboss.forge.spec.javaee.jsf.FacesAPIFacetImpl;
-import org.jboss.forge.spec.javaee.jsf.FacesFacetImpl;
 import org.jboss.forge.test.SingletonAbstractShellTest;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -108,6 +107,8 @@ public class FacesFacetTest extends SingletonAbstractShellTest
       Assert.assertFalse(project.hasFacet(FacesAPIFacet.class));
 
       Assert.assertFalse(project.getFacet(DependencyFacet.class).hasEffectiveDependency(
+               FacesAPIFacetImpl.JAVAEE6_FACES_21));
+      Assert.assertFalse(project.getFacet(DependencyFacet.class).hasEffectiveDependency(
                FacesAPIFacetImpl.JAVAEE6_FACES));
 
       queueInputLines("", "", "");
@@ -115,9 +116,9 @@ public class FacesFacetTest extends SingletonAbstractShellTest
       assertTrue(project.hasFacet(FacesAPIFacet.class));
 
       Assert.assertTrue(project.getFacet(DependencyFacet.class).hasEffectiveDependency(
-               FacesAPIFacetImpl.JAVAEE6_FACES));
+               FacesAPIFacetImpl.JAVAEE6_FACES_21));
       Assert.assertEquals(ScopeType.PROVIDED, project.getFacet(DependencyFacet.class).getEffectiveDependency(
-               FacesAPIFacetImpl.JAVAEE6_FACES).getScopeTypeEnum());
+               FacesAPIFacetImpl.JAVAEE6_FACES_21).getScopeTypeEnum());
    }
 
    private Project setUpJSF() throws Exception
@@ -128,9 +129,9 @@ public class FacesFacetTest extends SingletonAbstractShellTest
       Assert.assertTrue(project.hasFacet(FacesFacet.class));
 
       Assert.assertTrue(project.getFacet(DependencyFacet.class).hasEffectiveDependency(
-               FacesAPIFacetImpl.JAVAEE6_FACES));
+               FacesAPIFacetImpl.JAVAEE6_FACES_21));
       Assert.assertEquals(ScopeType.PROVIDED, project.getFacet(DependencyFacet.class).getEffectiveDependency(
-               FacesAPIFacetImpl.JAVAEE6_FACES).getScopeTypeEnum());
+               FacesAPIFacetImpl.JAVAEE6_FACES_21).getScopeTypeEnum());
       return project;
    }
 }

@@ -9,7 +9,7 @@
 
    <groupId>org.jboss.forge</groupId>
    <artifactId>forge-parent</artifactId>
-   <version>1.0.5-SNAPSHOT</version>
+   <version>1.0.6-SNAPSHOT</version>
    <packaging>pom</packaging>
 
    <name>Forge - Parent</name>
@@ -32,6 +32,11 @@
          <id>koen</id>
          <name>Koen Aers</name>
          <email>koen.aers@gmail.com</email>
+      </developer>
+      <developer>
+         <id>gastaldi</id>
+         <name>George Gastaldi</name>
+         <email>gegastaldi@gmail.com</email>
       </developer>
    </developers>
 
@@ -786,7 +791,7 @@
                <artifactId>maven-surefire-plugin</artifactId>
                <version>2.12</version>
                <configuration>
-                  <argLine>-Xms512m -Xmx1024m</argLine>
+                  <argLine>-Xms512m -Xmx1536m -XX:MaxPermSize=512m</argLine>
                </configuration>
             </plugin>
 
