@@ -25,9 +25,11 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 
+import org.eclipse.jgit.api.CherryPickResult;
 import org.eclipse.jgit.api.Git;
 import org.eclipse.jgit.api.errors.NoHeadException;
 import org.eclipse.jgit.lib.Ref;
+import org.jboss.forge.git.errors.CantMergeCommitWithZeroParentsException;
 import org.jboss.forge.project.Project;
 import org.jboss.forge.resources.FileResource;
 import org.jboss.forge.test.AbstractShellTest;
@@ -334,4 +336,54 @@ public class GitUtilsTest extends AbstractShellTest
       Assert.assertFalse("file should not exist", project.getProjectRoot().getChild(files[1]).exists());
    }
 
+   @Test
+   public void shouldCreateNewBranch() throws Exception
+   {
+      // git init
+      // create new branch
+      // verify branch exists
+
+      String testBranchName = "testBranch";
+      Project project = initializeJavaProject();
+      Git repo = GitUtils.init(project.getProjectRoot());
+
+      GitUtils.addAll(repo);
+      GitUtils.commitAll(repo, "initial commit");
+
+      Ref testBranch = GitUtils.createBranch(repo, testBranchName);
+      Assert.assertNotNull(testBranch);
+
+      List<Ref> branches = GitUtils.getLocalBranches(repo);
+      Assert.assertTrue("Branch is not created", branches.contains(testBranch));
+   }
+
+   @Test(expected = CantMergeCommitWithZeroParentsException.class)
+   public void shouldNotCrashWhenCherryPickNoMergeIsCalledOnLastCommit() throws Exception
+   {
+      String[] branchNames = { "master" };
+      String[] files = { "test1.txt" };
+      List<String> commits = null;
+      CherryPickResult cherryPickResult = null;
+
+      Project project = initializeJavaProject();
+      Git repo = GitUtils.init(project.getProjectRoot());
+
+      GitUtils.addAll(repo);
+      GitUtils.commitAll(repo, "initial commit");
+
+      FileResource<?> file0 = project.getProjectRoot().getChild(files[0]).reify(FileResource.class);
+      file0.createNewFile();
+      GitUtils.add(repo, files[0]);
+      GitUtils.commit(repo, "file added on " + branchNames[0]);
+
+      commits = GitUtils.getLogForCurrentBranch(repo);
+      Assert.assertEquals("Wrong number of commits in log", 2, commits.size());
+      cherryPickResult = GitUtils.cherryPickNoMerge(repo, repo.getRepository().getRef(branchNames[0]));
+      Assert.assertEquals("Wrong cherrypick status", CherryPickResult.CherryPickStatus.OK, cherryPickResult.getStatus());
+      GitUtils.resetHard(repo, "HEAD^1");
+
+      commits = GitUtils.getLogForCurrentBranch(repo);
+      Assert.assertEquals("Wrong number of commits in log", 1, commits.size());
+      GitUtils.cherryPickNoMerge(repo, repo.getRepository().getRef(branchNames[0]));
+   }
 }

@@ -43,6 +43,7 @@ import org.eclipse.jgit.revwalk.RevWalk;
 import org.eclipse.jgit.transport.FetchResult;
 import org.eclipse.jgit.transport.RefSpec;
 import org.eclipse.jgit.treewalk.FileTreeIterator;
+import org.jboss.forge.git.errors.CantMergeCommitWithZeroParentsException;
 import org.jboss.forge.parser.java.util.Strings;
 import org.jboss.forge.resources.DirectoryResource;
 import org.jboss.forge.resources.FileResource;
@@ -181,9 +182,12 @@ public abstract class GitUtils
       try
       {
          switchedBranch = repo.checkout().setName(branchName).call();
+         if (switchedBranch == null)
+            throw new RuntimeException("Couldn't switch to branch " + branchName);
       }
-      catch (Exception e)
+      catch (GitAPIException e)
       {
+         e.printStackTrace();
       }
 
       return switchedBranch;
@@ -260,7 +264,8 @@ public abstract class GitUtils
       repo.cherryPick().include(commit).call();
    }
 
-   public static CherryPickResult cherryPickNoMerge(final Git git, Ref src) throws GitAPIException
+   public static CherryPickResult cherryPickNoMerge(final Git git, Ref src) throws GitAPIException,
+            CantMergeCommitWithZeroParentsException
    {
       // Does the same as the original git-cherryPick
       // except commiting after running merger
@@ -289,7 +294,10 @@ public abstract class GitUtils
          RevCommit srcCommit = revWalk.parseCommit(srcObjectId);
 
          // get the parent of the commit to cherry-pick
-         if (srcCommit.getParentCount() != 1)
+         if (srcCommit.getParentCount() == 0)
+            throw new CantMergeCommitWithZeroParentsException("Commit with zero parents cannot be merged");
+
+         if (srcCommit.getParentCount() > 1)
             throw new MultipleParentsNotAllowedException(
                      MessageFormat.format(
                               JGitText.get().canOnlyCherryPickCommitsWithOneParent,
@@ -347,5 +355,16 @@ public abstract class GitUtils
    public static void resetHard(final Git repo, String newBase) throws GitAPIException
    {
       repo.reset().setMode(ResetCommand.ResetType.HARD).setRef(newBase).call();
+   }
+
+   public static Ref createBranch(Git git, String branchName) throws RefAlreadyExistsException, RefNotFoundException,
+            InvalidRefNameException, GitAPIException
+   {
+      Ref newBranch = git.branchCreate().setName(branchName).call();
+
+      if (newBranch == null)
+         throw new RuntimeException("Couldn't create new branch " + branchName);
+
+      return newBranch;
    }
 }

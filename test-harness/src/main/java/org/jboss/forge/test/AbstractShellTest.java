@@ -113,6 +113,8 @@ public abstract class AbstractShellTest
    @Before
    public void beforeTest() throws Exception
    {
+      shell.setOutputStream(output);
+      shell.setAnsiSupported(false);
       shell.setCurrentResource(createTempFolder());
       beanManager.fireEvent(new Startup());
       beanManager.fireEvent(new PostStartup());
@@ -120,8 +122,6 @@ public abstract class AbstractShellTest
       shell.setExceptionHandlingEnabled(false);
 
       resetInputQueue();
-      shell.setOutputStream(output);
-      shell.setAnsiSupported(false);
    }
 
    protected DirectoryResource createTempFolder() throws IOException
@@ -252,7 +252,7 @@ public abstract class AbstractShellTest
       return project.get();
    }
 
-   public String getOutput()
+   protected String getOutput()
    {
       return output.toString();
    }
