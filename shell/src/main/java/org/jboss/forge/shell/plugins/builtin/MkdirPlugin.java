@@ -1,33 +1,17 @@
 /*
- * JBoss, by Red Hat.
- * Copyright 2010, Red Hat, Inc., and individual contributors
- * by the @authors tag. See the copyright.txt in the distribution for a
- * full listing of individual contributors.
+ * Copyright 2012 Red Hat, Inc. and/or its affiliates.
  *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.shell.plugins.builtin;
 
 import javax.inject.Inject;
 
 import org.jboss.forge.resources.DirectoryResource;
 import org.jboss.forge.resources.FileResource;
-import org.jboss.forge.shell.Shell;
 import org.jboss.forge.shell.plugins.Alias;
+import org.jboss.forge.shell.plugins.Current;
 import org.jboss.forge.shell.plugins.DefaultCommand;
 import org.jboss.forge.shell.plugins.Help;
 import org.jboss.forge.shell.plugins.Option;
@@ -36,7 +20,10 @@ import org.jboss.forge.shell.plugins.RequiresResource;
 import org.jboss.forge.shell.plugins.Topic;
 
 /**
+ * Create the DIRECTORY(ies), if they do not already exist.
+ * 
  * @author Mike Brock
+ * @author George Gastaldi
  */
 @Alias("mkdir")
 @Topic("File & Resources")
@@ -44,21 +31,20 @@ import org.jboss.forge.shell.plugins.Topic;
 @Help("Create a new directory")
 public class MkdirPlugin implements Plugin
 {
-   private final Shell shell;
-
    @Inject
-   public MkdirPlugin(final Shell shell)
-   {
-      this.shell = shell;
-   }
+   @Current
+   private DirectoryResource currentDir;
 
    @DefaultCommand
-   public void mkdir(@Option(help = "name of directory to be created", required = true) final String name)
+   public void mkdir(
+            @Option(help = "name of directory to be created", required = true) final String name)
    {
-      DirectoryResource dr = (DirectoryResource) shell.getCurrentResource();
-
-      FileResource<?> newResource = (FileResource<?>) dr.getChild(name);
-      if (!newResource.mkdir())
+      FileResource<?> newResource = (FileResource<?>) currentDir.getChild(name);
+      if (newResource.exists())
+      {
+         throw new RuntimeException(String.format("cannot create directory '%s': File exists", name));
+      }
+      else if (!newResource.mkdirs())
       {
          throw new RuntimeException("failed to create directory: " + name);
       }

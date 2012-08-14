@@ -1,3 +1,9 @@
+/*
+ * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.shell.test.resources;
 
 import junit.framework.Assert;
@@ -28,7 +34,7 @@ public class ResourceAPITests extends AbstractShellTest
    public void testPathNavigation()
    {
       DirectoryResource expect = new DirectoryResource(factory, new File("").getAbsoluteFile().getParentFile()
-            .getParentFile());
+               .getParentFile());
       DirectoryResource r = new DirectoryResource(factory, new File("").getAbsoluteFile());
 
       Assert.assertEquals(expect, ResourceUtil.parsePathspec(factory, r, "../..").iterator().next());
@@ -86,7 +92,6 @@ public class ResourceAPITests extends AbstractShellTest
 
       OSUtils.setPretendWindows(false);
    }
-
 
    @Test
    public void testWildCards()

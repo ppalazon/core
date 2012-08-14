@@ -1,3 +1,9 @@
+/*
+ * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.shell.plugins.builtin;
 
 import java.util.Map;
@@ -34,8 +40,8 @@ public class SetPlugin implements Plugin
 
    @DefaultCommand
    public void run(@Option(description = "varname",
-                        completer = EnvironmentPropertiesCompleter.class) final String variable,
-                   @Option(description = "value") final String... value)
+            completer = EnvironmentPropertiesCompleter.class) final String variable,
+            @Option(description = "value") final String... value)
    {
 
       if (variable == null)

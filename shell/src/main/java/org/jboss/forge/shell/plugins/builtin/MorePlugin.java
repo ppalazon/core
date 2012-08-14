@@ -1,25 +1,9 @@
 /*
- * JBoss, by Red Hat.
- * Copyright 2010, Red Hat, Inc., and individual contributors
- * by the @authors tag. See the copyright.txt in the distribution for a
- * full listing of individual contributors.
+ * Copyright 2012 Red Hat, Inc. and/or its affiliates.
  *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.shell.plugins.builtin;
 
 import org.fusesource.jansi.Ansi;
@@ -38,7 +22,7 @@ import static org.jboss.forge.shell.util.GeneralUtils.pad;
 
 /**
  * Implementation of more & less, but called more. "More is less".
- *
+ * 
  * @author Mike Brock
  */
 @Alias("more")
@@ -51,11 +35,11 @@ public class MorePlugin implements Plugin
    private static final String PATTERN_NOT_FOUND = "-- Pattern not found: ";
    private static final String INVALID_COMMAND = "-- Invalid command: ";
 
-   private static final String SAVE_POS = new String(new char[]{27, '7'});
-   private static final String RES_POS = new String(new char[]{27, '8'});
-   private static final String HOME = new String(new char[]{27, '[', 'H'});
-   private static final String ERASE_TO_END = new String(new char[]{27, '[', 'K'});
-   private static final String ERASE_TO_END_AND_CR = new String(new char[]{27, '[', 'K', '\n'});
+   private static final String SAVE_POS = new String(new char[] { 27, '7' });
+   private static final String RES_POS = new String(new char[] { 27, '8' });
+   private static final String HOME = new String(new char[] { 27, '[', 'H' });
+   private static final String ERASE_TO_END = new String(new char[] { 27, '[', 'K' });
+   private static final String ERASE_TO_END_AND_CR = new String(new char[] { 27, '[', 'K', '\n' });
 
    private final Shell shell;
 
@@ -120,11 +104,9 @@ public class MorePlugin implements Plugin
 
       do
       {
-         Mainloop:
-         while ((read = lineBuffer.read(buffer)) != -1)
+         Mainloop: while ((read = lineBuffer.read(buffer)) != -1)
          {
-            Bufferloop:
-            for (int i = 0; i < read; i++)
+            Bufferloop: for (int i = 0; i < read; i++)
             {
                if (--lCounter <= -1)
                {
@@ -135,48 +117,49 @@ public class MorePlugin implements Plugin
 
                switch (c = buffer[i])
                {
-                  case '\r':
-                     continue Bufferloop;
-                  case '\n':
-                     lineBuffer.seenLine();
-                     lCounter = width;
-                          if (++y == 1) {
+               case '\r':
+                  continue Bufferloop;
+               case '\n':
+                  lineBuffer.seenLine();
+                  lCounter = width;
+                  if (++y == 1)
+                  {
                      shell.print(ERASE_TO_END);
-                           }
+                  }
 
-                  default:
-                     if (y >= height)
+               default:
+                  if (y >= height)
+                  {
+                     y = height;
+                     height = shell.getHeight() - 1;
+
+                     if (statusBarCache != null)
                      {
-                        y = height;
-                        height = shell.getHeight() - 1;
-
-                        if (statusBarCache != null)
-                        {
-                           shell.print(ERASE_TO_END_AND_CR + statusBarCache);
-                           shell.flush();
-                        }
-                        else
-                        {
-                           shell.print(ERASE_TO_END_AND_CR);
-                        }
-
-                        switch (prompt(lineBuffer, out, lastPattern))
-                        {
-                           case -1:
-                              y = 0;
-                              continue Mainloop;
-                           case -2:
-                              y--;
-                              continue Bufferloop;
-                           case -3:
-                              y = 0;
-                              continue Bufferloop;
-                           case 0:
-                              noAutoExit = false;
-                              break Mainloop;
-                        }
-
+                        shell.print(ERASE_TO_END_AND_CR + statusBarCache);
+                        shell.flush();
                      }
+                     else
+                     {
+                        shell.print(ERASE_TO_END_AND_CR);
+                     }
+
+                     switch (prompt(lineBuffer, out, lastPattern))
+                     {
+                     case -1:
+                        y = 0;
+                        continue Mainloop;
+                     case -2:
+                        y--;
+                        continue Bufferloop;
+                     case -3:
+                        y = 0;
+                        continue Bufferloop;
+                     case 0:
+                        noAutoExit = false;
+                        break Mainloop;
+                     }
+
+                  }
                }
 
                shell.write(c);
@@ -187,18 +170,18 @@ public class MorePlugin implements Plugin
          {
             switch (prompt(lineBuffer, out, lastPattern))
             {
-               case -1:
-                  y = 0;
-                  break;
-               case -2:
-                  y--;
-                  break;
-               case -3:
-                  y = 0;
-                  break;
-               case 0:
-                  noAutoExit = false;
-                  break;
+            case -1:
+               y = 0;
+               break;
+            case -2:
+               y--;
+               break;
+            case -3:
+               y = 0;
+               break;
+            case 0:
+               noAutoExit = false;
+               break;
             }
          }
 
@@ -233,7 +216,6 @@ public class MorePlugin implements Plugin
          String prompt = MOREPROMPT + "[line:" + lineBuffer.getCurrentLine()
                   + topBottomIndicator + "]  ";
 
-
          String bottomLineReset = new Ansi().cursor(shell.getAbsoluteHeight(), 0).toString();
 
          shell.print(statusBarCache = new StringBuilder(bottomLineReset)
@@ -246,130 +228,130 @@ public class MorePlugin implements Plugin
 
          shell.flush();
          int scanCode = shell.scan();
-         //      shell.clearLine();
+         // shell.clearLine();
 
          switch (scanCode)
          {
-            case 'e':
-            case 'E':
-            case 'j':
-            case 'J':
-            case 16:
-               lineBuffer.rewindBuffer(shell.getHeight() - 1, lineBuffer.getCurrentLine() - 1);
-               lineBuffer.setLineWidth(shell.getWidth());
-               return -1;
+         case 'e':
+         case 'E':
+         case 'j':
+         case 'J':
+         case 16:
+            lineBuffer.rewindBuffer(shell.getHeight() - 1, lineBuffer.getCurrentLine() - 1);
+            lineBuffer.setLineWidth(shell.getWidth());
+            return -1;
 
-            case 'u':
-            case 'U':
-               lineBuffer.rewindBuffer(shell.getHeight() - 1, lineBuffer.getCurrentLine() - shell.getHeight());
-               lineBuffer.setLineWidth(shell.getWidth());
-               return -1;
+         case 'u':
+         case 'U':
+            lineBuffer.rewindBuffer(shell.getHeight() - 1, lineBuffer.getCurrentLine() - shell.getHeight());
+            lineBuffer.setLineWidth(shell.getWidth());
+            return -1;
 
-            case 'y':
-            case 'Y':
-            case 'k':
-            case 'K':
-            case 14:
-            case '\n':
-               lineBuffer.setLineWidth(shell.getWidth());
-               return -2;
-            case ' ':
-               lineBuffer.setLineWidth(shell.getWidth());
-               return -3;
-            case 'q':
-            case 'Q':
+         case 'y':
+         case 'Y':
+         case 'k':
+         case 'K':
+         case 14:
+         case '\n':
+            lineBuffer.setLineWidth(shell.getWidth());
+            return -2;
+         case ' ':
+            lineBuffer.setLineWidth(shell.getWidth());
+            return -3;
+         case 'q':
+         case 'Q':
+            shell.clearLine();
+            shell.cursorLeft(prompt.length());
+            shell.flush();
+            return 0;
+
+         case '?':
+            backwards = true;
+         case '/':
+            shell.clearLine();
+            shell.cursorLeft(prompt.length());
+
+            prompt = backwards ? SEARCH_BACKWARDS_PROMPT : SEARCH_FORWARD_PROMPT;
+            String pattern;
+
+            if (lastPattern != null)
+            {
+               prompt += "[ENT to repeat search '" + lastPattern + "']: ";
+            }
+
+            out.print(ShellColor.BOLD, prompt);
+            shell.flush();
+
+            pattern = shell.promptAndSwallowCR().trim();
+
+            String searched;
+
+            shell.clearLine();
+            shell.cursorLeft(prompt.length() + pattern.length());
+
+            prompt += "Scanning buffer...";
+            out.print(ShellColor.BOLD, prompt);
+
+            shell.flush();
+
+            String p;
+            if (pattern.equals("") && (lastPattern.length() != 0))
+            {
+               p = searched = lineBuffer.toString();
+            }
+            else
+            {
+               if (lastPattern.length() != 0)
+               {
+                  lastPattern.delete(0, lastPattern.length() - 1);
+               }
+               lastPattern.append(pattern);
+               p = searched = pattern;
+            }
+
+            int result = lineBuffer.findPattern(p, backwards);
+
+            if (result == -1)
+            {
                shell.clearLine();
                shell.cursorLeft(prompt.length());
-               shell.flush();
-               return 0;
-
-            case '?':
-               backwards = true;
-            case '/':
-               shell.clearLine();
-               shell.cursorLeft(prompt.length());
-
-               prompt = backwards ? SEARCH_BACKWARDS_PROMPT : SEARCH_FORWARD_PROMPT;
-               String pattern;
-
-               if (lastPattern != null)
-               {
-                  prompt += "[ENT to repeat search '" + lastPattern + "']: ";
-               }
-
-               out.print(ShellColor.BOLD, prompt);
+               shell.print(ShellColor.RED, PATTERN_NOT_FOUND + searched);
                shell.flush();
 
-               pattern = shell.promptAndSwallowCR().trim();
-
-               String searched;
-
-               shell.clearLine();
-               shell.cursorLeft(prompt.length() + pattern.length());
-
-               prompt += "Scanning buffer...";
-               out.print(ShellColor.BOLD, prompt);
-
-               shell.flush();
-
-               String p;
-               if (pattern.equals("") && (lastPattern.length() != 0))
-               {
-                  p = searched = lineBuffer.toString();
-               }
-               else
-               {
-                  if (lastPattern.length() != 0)
-                  {
-                     lastPattern.delete(0, lastPattern.length() - 1);
-                  }
-                  lastPattern.append(pattern);
-                  p = searched = pattern;
-               }
-
-               int result = lineBuffer.findPattern(p, backwards);
-
-               if (result == -1)
-               {
-                  shell.clearLine();
-                  shell.cursorLeft(prompt.length());
-                  shell.print(ShellColor.RED, PATTERN_NOT_FOUND + searched);
-                  shell.flush();
-
-                  shell.scan();
-                  shell.clearLine();
-                  shell.cursorLeft(PATTERN_NOT_FOUND.length() + searched.length());
-                  shell.flush();
-               }
-               else
-               {
-                  lineBuffer.rewindBuffer(shell.getHeight() - 1, result);
-                  // y = 0;
-                  shell.clear();
-                  shell.flush();
-                  return -1;
-               }
-               break;
-
-            case 'a':
-            case 'A':
-               shell.print(bottomLineReset);
-               shell.print(ShellColor.BOLD, "Less&More for JBoss Forge by Mike Brock. Copyright (c) 2011 Red Hat [Press a Key]");
-               shell.flush();
                shell.scan();
-               break;
-
-            default:
                shell.clearLine();
-               shell.cursorLeft(prompt.length());
-               out.print(ShellColor.RED, INVALID_COMMAND + ((char) scanCode));
-               shell.scan();
+               shell.cursorLeft(PATTERN_NOT_FOUND.length() + searched.length());
+               shell.flush();
+            }
+            else
+            {
+               lineBuffer.rewindBuffer(shell.getHeight() - 1, result);
+               // y = 0;
+               shell.clear();
+               shell.flush();
+               return -1;
+            }
+            break;
 
-               shell.clearLine();
-               shell.cursorLeft(INVALID_COMMAND.length() + 1);
+         case 'a':
+         case 'A':
+            shell.print(bottomLineReset);
+            shell.print(ShellColor.BOLD,
+                     "Less&More for JBoss Forge by Mike Brock. Copyright (c) 2011 Red Hat [Press a Key]");
+            shell.flush();
+            shell.scan();
+            break;
+
+         default:
+            shell.clearLine();
+            shell.cursorLeft(prompt.length());
+            out.print(ShellColor.RED, INVALID_COMMAND + ((char) scanCode));
+            shell.scan();
+
+            shell.clearLine();
+            shell.cursorLeft(INVALID_COMMAND.length() + 1);
 
          }
-
 
       }
 
@@ -501,13 +483,13 @@ public class MorePlugin implements Plugin
             {
                switch (curr.charAt(cursor++))
                {
-                  case '\r':
-                     cursor++;
-                     continue;
-                  case '\n':
-                     lCount = lineWidth;
-                     currLine++;
-                     continue;
+               case '\r':
+                  cursor++;
+                  continue;
+               case '\n':
+                  lCount = lineWidth;
+                  currLine++;
+                  continue;
                }
 
                if (--lCount <= -1)
@@ -554,17 +536,17 @@ public class MorePlugin implements Plugin
 
                switch (buffer[i])
                {
-                  case '\r':
-                     i++;
-                  case '\n':
-                     line++;
-                     lCount = lineWidth;
-                     if (p.matcher(curr.subSequence(startLine, cursor - 1)).matches())
-                     {
-                        return line;
-                     }
+               case '\r':
+                  i++;
+               case '\n':
+                  line++;
+                  lCount = lineWidth;
+                  if (p.matcher(curr.subSequence(startLine, cursor - 1)).matches())
+                  {
+                     return line;
+                  }
 
-                     startLine = cursor;
+                  startLine = cursor;
                }
 
                if (--lCount <= 0)
@@ -604,7 +586,7 @@ public class MorePlugin implements Plugin
 
    private static String attr(int... code)
    {
-      return new String(new char[]{27, '['}) + _attr(code) + "m";
+      return new String(new char[] { 27, '[' }) + _attr(code) + "m";
    }
 
    private static String _attr(int... code)

@@ -1,25 +1,9 @@
 /*
- * JBoss, by Red Hat.
- * Copyright 2010, Red Hat, Inc., and individual contributors
- * by the @authors tag. See the copyright.txt in the distribution for a
- * full listing of individual contributors.
+ * Copyright 2012 Red Hat, Inc. and/or its affiliates.
  *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.shell;
 
 import java.io.File;
@@ -54,12 +38,12 @@ import org.jboss.weld.environment.se.WeldContainer;
  */
 public class Bootstrap
 {
-   
+
    public static final String PROP_PLUGIN_DIR = "org.jboss.forge.pluginDir";
    public static final String PROP_EVALUATE = "org.jboss.forge.evaluate";
    private static final String ARG_PLUGIN_DIR = "-pluginDir";
    private static final String ARG_EVALUATE = "-e";
-   
+
    private static boolean pluginSystemEnabled = !Boolean.getBoolean("forge.plugins.disable");
    private static Thread currentShell = null;
    private static boolean restartRequested = false;
@@ -75,24 +59,31 @@ public class Bootstrap
       readArguments(args);
       init();
    }
-   
-   private static void readArguments(String[] args) {
+
+   private static void readArguments(String[] args)
+   {
       readPluginDirArgument(args);
       readEvaluateArgument(args);
    }
-   
-   private static void readPluginDirArgument(String[] args) {
-      for (int i = 0; i < args.length; i++) {
-         if (ARG_PLUGIN_DIR.equals(args[i]) && i + 1 < args.length) {
+
+   private static void readPluginDirArgument(String[] args)
+   {
+      for (int i = 0; i < args.length; i++)
+      {
+         if (ARG_PLUGIN_DIR.equals(args[i]) && i + 1 < args.length)
+         {
             System.setProperty(PROP_PLUGIN_DIR, args[i + 1]);
             return;
          }
       }
    }
-   
-   private static void readEvaluateArgument(String[] args) {
-      for (int i = 0; i < args.length; i++) {
-         if (ARG_EVALUATE.equals(args[i]) && i + 1 < args.length) {
+
+   private static void readEvaluateArgument(String[] args)
+   {
+      for (int i = 0; i < args.length; i++)
+      {
+         if (ARG_EVALUATE.equals(args[i]) && i + 1 < args.length)
+         {
             System.setProperty(PROP_EVALUATE, args[i + 1]);
             return;
          }
@@ -119,20 +110,25 @@ public class Bootstrap
                // FIXME this plugin loading scheme causes classloading issues w/weld because weld cannot load classes
                // from its own classloaders before plugins are loaded and pollute the classpath.
                // We can work around it by loading weld before we load plugins, then restarting weld, but this is SLOW.
-               try {
+               try
+               {
                   WeldContainer container = weld.initialize();
                   manager = container.getBeanManager();
                   weld.shutdown();
                }
-               catch (Exception e) {}
+               catch (Exception e)
+               {
+               }
 
-               try {
+               try
+               {
                   // TODO verify plugin API versions. only activate compatible plugins.
                   loadPlugins();
                   WeldContainer container = weld.initialize();
                   manager = container.getBeanManager();
                }
-               catch (Throwable e) {
+               catch (Throwable e)
+               {
                   // Boot up with external plugins disabled.
                   System.out
                            .println("Plugin system disabled due to failure while loading one or more plugins; try removing offending plugins with \"forge remove-plugin <TAB>\".");
@@ -190,7 +186,7 @@ public class Bootstrap
 
    synchronized private static void loadPlugins()
    {
-      
+
       if (!pluginSystemEnabled)
          return;
 
@@ -203,14 +199,16 @@ public class Bootstrap
 
          List<PluginEntry> toLoad = new ArrayList<InstalledPluginRegistry.PluginEntry>();
 
-         List<PluginEntry> installed = InstalledPluginRegistry.listByAPICompatibleVersion(InstalledPluginRegistry.getRuntimeAPIVersion());
+         List<PluginEntry> installed = InstalledPluginRegistry.listByAPICompatibleVersion(InstalledPluginRegistry
+                  .getRuntimeAPIVersion());
 
          toLoad.addAll(installed);
 
          List<PluginEntry> incompatible = InstalledPluginRegistry.list();
          incompatible.removeAll(installed);
 
-         for (PluginEntry pluginEntry : incompatible) {
+         for (PluginEntry pluginEntry : incompatible)
+         {
             System.out.println("Not loading plugin [" + pluginEntry.getName()
                      + "] because it references Forge API version [" + pluginEntry.getApiVersion()
                      + "] which may not be compatible with my current version [" + Bootstrap.class.getPackage()

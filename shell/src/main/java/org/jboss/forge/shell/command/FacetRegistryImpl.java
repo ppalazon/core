@@ -1,31 +1,14 @@
 /*
- * JBoss, by Red Hat.
- * Copyright 2010, Red Hat, Inc., and individual contributors
- * by the @authors tag. See the copyright.txt in the distribution for a
- * full listing of individual contributors.
+ * Copyright 2012 Red Hat, Inc. and/or its affiliates.
  *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.shell.command;
 
 import java.util.Set;
 
 import javax.annotation.PostConstruct;
-import javax.enterprise.inject.spi.BeanManager;
 import javax.inject.Inject;
 import javax.inject.Singleton;
 
@@ -43,28 +26,26 @@ public class FacetRegistryImpl implements FacetRegistry
    private Set<Class<? extends Facet>> facetTypes;
 
    private final CommandLibraryExtension library;
-   private final BeanManager manager;
 
    @Inject
-   public FacetRegistryImpl(final CommandLibraryExtension library, final BeanManager manager)
+   public FacetRegistryImpl(final CommandLibraryExtension library)
    {
       this.library = library;
-      this.manager = manager;
    }
 
    @PostConstruct
    public void init()
    {
-       facetTypes = library.getFacetTypes();
+      facetTypes = library.getFacetTypes();
    }
-   
+
    /**
     * @return the facetTypes
     */
    @Override
    public Set<Class<? extends Facet>> getFacetTypes()
    {
-       return facetTypes;
+      return facetTypes;
    }
 
 }

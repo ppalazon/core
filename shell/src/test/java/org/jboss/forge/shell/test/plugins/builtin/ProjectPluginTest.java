@@ -1,3 +1,9 @@
+/*
+ * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+ *
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
+ */
 package org.jboss.forge.shell.test.plugins.builtin;
 
 import org.apache.maven.model.Model;
@@ -28,31 +34,33 @@ import static org.junit.matchers.JUnitMatchers.hasItem;
 @RunWith(Arquillian.class)
 public class ProjectPluginTest extends AbstractShellTest
 {
-    @Test
-    public void testAddProperty() throws Exception {
-        initializeJavaProject();
+   @Test
+   public void testAddProperty() throws Exception
+   {
+      initializeJavaProject();
 
-        getShell().execute("project set-property --name forge.version --value 1.0.2.Final");
-        final DependencyFacet dependencyFacet = getProject().getFacet(DependencyFacet.class);
+      getShell().execute("project set-property --name forge.version --value 1.0.2.Final");
+      final DependencyFacet dependencyFacet = getProject().getFacet(DependencyFacet.class);
 
-        assertThat(dependencyFacet.getProperty("forge.version"), is("1.0.2.Final"));
-    }
+      assertThat(dependencyFacet.getProperty("forge.version"), is("1.0.2.Final"));
+   }
 
-    @Test
-    public void testAddDependencyUsingProperty() throws Exception {
-        initializeJavaProject();
+   @Test
+   public void testAddDependencyUsingProperty() throws Exception
+   {
+      initializeJavaProject();
 
-        getShell().execute("project set-property --name arquillian.bom.version --value 1.0.0.CR7");
-        getShell().execute("project add-dependency \"org.jboss.arquillian:arquillian-bom:${arquillian.bom.version}\"");
+      getShell().execute("project set-property --name arquillian.bom.version --value 1.0.0.CR7");
+      getShell().execute("project add-dependency \"org.jboss.arquillian:arquillian-bom:${arquillian.bom.version}\"");
 
-        DependencyFacet deps = getProject().getFacet(DependencyFacet.class);
-        Dependency arquillianBomDep = DependencyBuilder.create("org.jboss.arquillian:arquillian-bom:1.0.0.CR7")
-                .setPackagingType(PackagingType.JAR).setScopeType(ScopeType.COMPILE);
+      DependencyFacet deps = getProject().getFacet(DependencyFacet.class);
+      Dependency arquillianBomDep = DependencyBuilder.create("org.jboss.arquillian:arquillian-bom:1.0.0.CR7")
+               .setPackagingType(PackagingType.JAR).setScopeType(ScopeType.COMPILE);
 
-        assertThat(deps.getEffectiveDependencies(), hasItem(arquillianBomDep));
-    }
+      assertThat(deps.getEffectiveDependencies(), hasItem(arquillianBomDep));
+   }
 
-    @Test
+   @Test
    public void testAddDependencyFromManagedParent() throws Exception
    {
       initializeJavaProject();
@@ -88,7 +96,7 @@ public class ProjectPluginTest extends AbstractShellTest
    /**
     * Tests that if a dependency is managed by a parent and a different version is managed in the pom itself, then the
     * local version will be used
-    *
+    * 
     * @throws Exception
     */
    @Test
@@ -127,7 +135,7 @@ public class ProjectPluginTest extends AbstractShellTest
 
    /**
     * Tests that a dependency managed by an imported pom will be used.
-    *
+    * 
     * @throws Exception
     */
    @Test
@@ -162,7 +170,7 @@ public class ProjectPluginTest extends AbstractShellTest
 
    /**
     * Tests that a dependency that is managed in the local pom will be used.
-    *
+    * 
     * @throws Exception
     */
    @Test
@@ -190,7 +198,7 @@ public class ProjectPluginTest extends AbstractShellTest
 
    /**
     * Tests overriding managed dependency with a different version.
-    *
+    * 
     * @throws Exception
     */
    @Test
@@ -219,7 +227,7 @@ public class ProjectPluginTest extends AbstractShellTest
 
    /**
     * Tests overriding managed dependency with a different version.
-    *
+    * 
     * @throws Exception
     */
    @Test

@@ -1,25 +1,9 @@
 /*
- * JBoss, Home of Professional Open Source
- * Copyright 2010, Red Hat, Inc., and individual contributors
- * by the @authors tag. See the copyright.txt in the distribution for a
- * full listing of individual contributors.
+ * Copyright 2012 Red Hat, Inc. and/or its affiliates.
  *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.maven.dependencies;
 
 import static org.junit.Assert.assertTrue;
@@ -35,6 +19,7 @@ import org.jboss.forge.maven.util.ProjectModelTest;
 import org.jboss.forge.project.dependencies.Dependency;
 import org.jboss.forge.project.dependencies.DependencyBuilder;
 import org.jboss.forge.project.dependencies.DependencyMetadata;
+import org.jboss.forge.project.dependencies.DependencyQueryBuilder;
 import org.jboss.forge.project.dependencies.DependencyRepository;
 import org.jboss.forge.project.dependencies.DependencyRepositoryImpl;
 import org.jboss.forge.project.dependencies.DependencyResolver;
@@ -67,7 +52,7 @@ public class RepositoryLookupTest extends ProjectModelTest
    {
       Dependency dep = DependencyBuilder.create("com.ocpsoft:prettyfaces-jsf2");
       DependencyRepository repo = new DependencyRepositoryImpl(KnownRepository.CENTRAL);
-      List<Dependency> versions = resolver.resolveVersions(dep, Arrays.asList(repo));
+      List<Dependency> versions = resolver.resolveVersions(new DependencyQueryBuilder(dep).setRepositories(repo));
       assertTrue(versions.size() > 4);
    }
 
@@ -76,7 +61,7 @@ public class RepositoryLookupTest extends ProjectModelTest
    {
       Dependency dep = DependencyBuilder.create("com.ocpsoft:prettyfaces-jsf2:3.2.0");
       DependencyRepository repo = new DependencyRepositoryImpl(KnownRepository.CENTRAL);
-      List<Dependency> versions = resolver.resolveVersions(dep, Arrays.asList(repo));
+      List<Dependency> versions = resolver.resolveVersions(new DependencyQueryBuilder(dep).setRepositories(repo));
       assertTrue(versions.size() >= 1);
    }
 
@@ -85,7 +70,7 @@ public class RepositoryLookupTest extends ProjectModelTest
    {
       Dependency dep = DependencyBuilder.create("org.jboss.errai.forge:forge-errai:1.0-SNAPSHOT");
       DependencyRepository repo = new DependencyRepositoryImpl(KnownRepository.JBOSS_NEXUS);
-      List<Dependency> versions = resolver.resolveVersions(dep, repo);
+      List<Dependency> versions = resolver.resolveVersions(new DependencyQueryBuilder(dep).setRepositories(repo));
       assertTrue(versions.size() >= 1);
    }
 

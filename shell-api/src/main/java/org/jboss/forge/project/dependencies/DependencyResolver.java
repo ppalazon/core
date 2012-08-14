@@ -1,24 +1,10 @@
 /*
- * JBoss, Home of Professional Open Source
- * Copyright 2011, Red Hat, Inc., and individual contributors
- * by the @authors tag. See the copyright.txt in the distribution for a
- * full listing of individual contributors.
+ * Copyright 2012 Red Hat, Inc. and/or its affiliates.
  *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
  */
+
 package org.jboss.forge.project.dependencies;
 
 import java.util.ArrayList;
@@ -166,6 +152,9 @@ public class DependencyResolver
       return null;
    }
 
+   /**
+    * @deprecated Use {@link DependencyResolver#resolveVersions(DependencyQuery)}
+    */
    public List<Dependency> resolveVersions(final Dependency query)
    {
       for (DependencyResolverProvider p : providers)
@@ -179,6 +168,9 @@ public class DependencyResolver
       return new ArrayList<Dependency>();
    }
 
+   /**
+    * @deprecated Use {@link DependencyResolver#resolveVersions(DependencyQuery)}
+    */
    public List<Dependency> resolveVersions(final Dependency query, final DependencyRepository repository)
    {
       for (DependencyResolverProvider p : providers)
@@ -192,6 +184,9 @@ public class DependencyResolver
       return new ArrayList<Dependency>();
    }
 
+   /**
+    * @deprecated Use {@link DependencyResolver#resolveVersions(DependencyQuery)}
+    */
    public List<Dependency> resolveVersions(final Dependency query, final List<DependencyRepository> repositories)
    {
       for (DependencyResolverProvider p : providers)
@@ -204,4 +199,31 @@ public class DependencyResolver
       }
       return new ArrayList<Dependency>();
    }
+
+   /**
+    * Resolve a set of {@link Dependency} versions matching the given query.
+    */
+   public List<Dependency> resolveVersions(final DependencyQuery query)
+   {
+      List<Dependency> deps = new ArrayList<Dependency>();
+      DependencyFilter dependencyFilter = query.getDependencyFilter();
+      Dependency dependency = query.getDependency();
+      List<DependencyRepository> dependencyRepositories = query.getDependencyRepositories();
+      for (DependencyResolverProvider p : providers)
+      {
+         List<Dependency> artifacts = p.resolveVersions(dependency, dependencyRepositories);
+         if (artifacts != null)
+         {
+            for (Dependency artifact : artifacts)
+            {
+               if (dependencyFilter == null || dependencyFilter.accept(artifact))
+               {
+                  deps.add(artifact);
+               }
+            }
+         }
+      }
+      return deps;
+   }
+
 }

@@ -1,25 +1,9 @@
 /*
- * JBoss, by Red Hat.
- * Copyright 2010, Red Hat, Inc., and individual contributors
- * by the @authors tag. See the copyright.txt in the distribution for a
- * full listing of individual contributors.
+ * Copyright 2012 Red Hat, Inc. and/or its affiliates.
  *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.shell.command;
 
 import java.lang.annotation.Annotation;
@@ -37,7 +21,6 @@ import org.jboss.forge.shell.constraint.ConstraintException;
 import org.jboss.forge.shell.events.CommandExecuted;
 import org.jboss.forge.shell.events.CommandExecuted.Status;
 import org.jboss.forge.shell.exceptions.CommandExecutionException;
-import org.jboss.forge.shell.exceptions.NoSuchCommandException;
 import org.jboss.forge.shell.plugins.AliasLiteral;
 import org.jboss.forge.shell.plugins.PipeOut;
 import org.jboss.forge.shell.plugins.Plugin;
@@ -157,15 +140,16 @@ public class Execution
                finally
                {
                   Thread.currentThread().setContextClassLoader(current);
-                  manager.fireEvent(new CommandExecuted(status, command, parameterArray), new Annotation[] {});
+                  manager.fireEvent(new CommandExecuted(status, command, originalStatement, parameterArray),
+                           new Annotation[] {});
                }
             }
          }
       }
       else
       {
-         // TODO it would be nice if this delegated to the system forge
-         throw new NoSuchCommandException(command, "No such command: " + originalStatement);
+         manager.fireEvent(new CommandExecuted(Status.MISSING, command, originalStatement, parameterArray),
+                  new Annotation[] {});
       }
 
    }

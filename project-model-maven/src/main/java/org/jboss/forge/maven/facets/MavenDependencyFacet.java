@@ -1,23 +1,8 @@
 /*
- * JBoss, by Red Hat.
- * Copyright 2010, Red Hat, Inc., and individual contributors
- * by the @authors tag. See the copyright.txt in the distribution for a
- * full listing of individual contributors.
+ * Copyright 2012 Red Hat, Inc. and/or its affiliates.
  *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
  */
 package org.jboss.forge.maven.facets;
 
@@ -41,9 +26,12 @@ import org.jboss.forge.maven.dependencies.MavenDependencyAdapter;
 import org.jboss.forge.project.Facet;
 import org.jboss.forge.project.dependencies.Dependency;
 import org.jboss.forge.project.dependencies.DependencyBuilder;
+import org.jboss.forge.project.dependencies.DependencyQuery;
+import org.jboss.forge.project.dependencies.DependencyQueryBuilder;
 import org.jboss.forge.project.dependencies.DependencyRepository;
 import org.jboss.forge.project.dependencies.DependencyRepositoryImpl;
 import org.jboss.forge.project.dependencies.DependencyResolver;
+import org.jboss.forge.project.dependencies.NonSnapshotDependencyFilter;
 import org.jboss.forge.project.dependencies.ScopeType;
 import org.jboss.forge.project.dependencies.events.AddedDependencies;
 import org.jboss.forge.project.dependencies.events.RemovedDependencies;
@@ -430,7 +418,9 @@ public class MavenDependencyFacet extends BaseFacet implements DependencyFacet, 
    @Override
    public List<Dependency> resolveAvailableVersions(final Dependency dep)
    {
-      List<Dependency> versions = resolver.resolveVersions(dep, getRepositories());
+      // Resolve dependencies without any snapshots
+      DependencyQuery query = new DependencyQueryBuilder(dep).setRepositories(getRepositories()).setFilter(new NonSnapshotDependencyFilter());
+      List<Dependency> versions = resolver.resolveVersions(query);
       return versions;
    }
 

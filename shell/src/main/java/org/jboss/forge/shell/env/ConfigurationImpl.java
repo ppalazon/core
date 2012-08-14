@@ -1,23 +1,8 @@
 /*
- * JBoss, Home of Professional Open Source
- * Copyright 2011, Red Hat, Inc., and individual contributors
- * by the @authors tag. See the copyright.txt in the distribution for a
- * full listing of individual contributors.
+ * Copyright 2012 Red Hat, Inc. and/or its affiliates.
  *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
  */
 package org.jboss.forge.shell.env;
 
@@ -45,93 +30,95 @@ import org.jboss.solder.unwraps.Unwraps;
 @ApplicationScoped
 public class ConfigurationImpl
 {
-    private Shell shell;
-    private ForgeEnvironment environment;
-    private ScopedConfigurationAdapter userConfig;
-    private ScopedConfigurationAdapter projectConfig;
-    private Project currentProject;
-    private BeanManager bm;
+   private Shell shell;
+   private ForgeEnvironment environment;
+   private ScopedConfigurationAdapter userConfig;
+   private ScopedConfigurationAdapter projectConfig;
+   private Project currentProject;
+   private BeanManager bm;
 
-    public ConfigurationImpl()
-    {
-    }
+   public ConfigurationImpl()
+   {
+   }
 
-    @Inject
-    public ConfigurationImpl(final Shell shell, BeanManager bm)
-    {
-        this.bm = bm;
-        this.shell = shell;
-        this.environment = shell.getEnvironment();
-    }
+   @Inject
+   public ConfigurationImpl(final Shell shell, BeanManager bm)
+   {
+      this.bm = bm;
+      this.shell = shell;
+      this.environment = shell.getEnvironment();
+   }
 
-    @Unwraps
-    public Configuration getConfiguration() throws ConfigurationException
-    {
-        
-        Project project = shell.getCurrentProject();
-        if ((project != null) && !project.equals(this.currentProject))
-        {
-            currentProject = project;
-            ScopedConfigurationAdapter projectConfig = new ScopedConfigurationAdapter();
-            XMLConfiguration projectLocalConfig;
-            try
-            {
-                projectLocalConfig = new XMLConfiguration(getProjectSettings(project).getUnderlyingResourceObject());
-                projectLocalConfig.setEncoding("UTF-8");
-            }
-            catch (org.apache.commons.configuration.ConfigurationException e)
-            {
-                throw new ConfigurationException(e);
-            }
-            projectLocalConfig.setReloadingStrategy(new FileChangedReloadingStrategy());
-            projectLocalConfig.setAutoSave(true);
+   @Unwraps
+   public Configuration getConfiguration() throws ConfigurationException
+   {
 
-            ConfigurationAdapter adapter = BeanManagerUtils.getContextualInstance(bm, ConfigurationAdapter.class, new ConfigAdapterQualifierLiteral());
-            adapter.setParent(projectConfig);
-            adapter.setDelegate(projectLocalConfig);
-            adapter.setBeanManager(bm);
-            projectConfig.setScopedConfiguration(ConfigurationScope.PROJECT, adapter);
-            projectConfig.setScopedConfiguration(ConfigurationScope.USER, getUserConfig());
+      Project project = shell.getCurrentProject();
+      if ((project != null) && !project.equals(this.currentProject))
+      {
+         currentProject = project;
+         ScopedConfigurationAdapter projectConfig = new ScopedConfigurationAdapter();
+         XMLConfiguration projectLocalConfig;
+         try
+         {
+            projectLocalConfig = new XMLConfiguration(getProjectSettings(project).getUnderlyingResourceObject());
+            projectLocalConfig.setEncoding("UTF-8");
+         }
+         catch (org.apache.commons.configuration.ConfigurationException e)
+         {
+            throw new ConfigurationException(e);
+         }
+         projectLocalConfig.setReloadingStrategy(new FileChangedReloadingStrategy());
+         projectLocalConfig.setAutoSave(true);
 
-            this.projectConfig = projectConfig;
-            return projectConfig;
-        }
-        else if ((project != null) && project.equals(this.currentProject))
-        {
-            return projectConfig;
-        }
-        return getUserConfig();
-    }
+         ConfigurationAdapter adapter = BeanManagerUtils.getContextualInstance(bm, ConfigurationAdapter.class,
+                  new ConfigAdapterQualifierLiteral());
+         adapter.setParent(projectConfig);
+         adapter.setDelegate(projectLocalConfig);
+         adapter.setBeanManager(bm);
+         projectConfig.setScopedConfiguration(ConfigurationScope.PROJECT, adapter);
+         projectConfig.setScopedConfiguration(ConfigurationScope.USER, getUserConfig());
 
-    public Configuration getUserConfig() throws ConfigurationException
-    {
-        // FIXME NPE caused when no project exists because config param is null
-        if (userConfig == null)
-        {
-            XMLConfiguration globalXml;
-            try
-            {
-                globalXml = new XMLConfiguration(environment.getUserConfiguration().getUnderlyingResourceObject());
-                globalXml.setEncoding("UTF-8");
-            }
-            catch (org.apache.commons.configuration.ConfigurationException e)
-            {
-                throw new ConfigurationException(e);
-            }
-            globalXml.setReloadingStrategy(new FileChangedReloadingStrategy());
-            globalXml.setAutoSave(true);
-            
-            ConfigurationAdapter adapter = BeanManagerUtils.getContextualInstance(bm, ConfigurationAdapter.class, new ConfigAdapterQualifierLiteral());
-            adapter.setDelegate(globalXml);
-            adapter.setBeanManager(bm);
-            userConfig = new ScopedConfigurationAdapter(ConfigurationScope.USER, adapter);
-        }
-        return userConfig;
-    }
+         this.projectConfig = projectConfig;
+         return projectConfig;
+      }
+      else if ((project != null) && project.equals(this.currentProject))
+      {
+         return projectConfig;
+      }
+      return getUserConfig();
+   }
 
-    public FileResource<?> getProjectSettings(final Project project)
-    {
-        FileResource<?> settingsFile = project.getProjectRoot().getChild(".forge_settings").reify(FileResource.class);
-        return settingsFile;
-    }
+   public Configuration getUserConfig() throws ConfigurationException
+   {
+      // FIXME NPE caused when no project exists because config param is null
+      if (userConfig == null)
+      {
+         XMLConfiguration globalXml;
+         try
+         {
+            globalXml = new XMLConfiguration(environment.getUserConfiguration().getUnderlyingResourceObject());
+            globalXml.setEncoding("UTF-8");
+         }
+         catch (org.apache.commons.configuration.ConfigurationException e)
+         {
+            throw new ConfigurationException(e);
+         }
+         globalXml.setReloadingStrategy(new FileChangedReloadingStrategy());
+         globalXml.setAutoSave(true);
+
+         ConfigurationAdapter adapter = BeanManagerUtils.getContextualInstance(bm, ConfigurationAdapter.class,
+                  new ConfigAdapterQualifierLiteral());
+         adapter.setDelegate(globalXml);
+         adapter.setBeanManager(bm);
+         userConfig = new ScopedConfigurationAdapter(ConfigurationScope.USER, adapter);
+      }
+      return userConfig;
+   }
+
+   public FileResource<?> getProjectSettings(final Project project)
+   {
+      FileResource<?> settingsFile = project.getProjectRoot().getChild(".forge_settings").reify(FileResource.class);
+      return settingsFile;
+   }
 }

@@ -1,25 +1,9 @@
 /*
- * JBoss, by Red Hat.
- * Copyright 2011, Red Hat, Inc., and individual contributors
- * by the @authors tag. See the copyright.txt in the distribution for a
- * full listing of individual contributors.
+ * Copyright 2012 Red Hat, Inc. and/or its affiliates.
  *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
  */
-
 package org.jboss.forge.shell.plugins.builtin;
 
 import java.net.ProxySelector;
@@ -29,9 +13,12 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.TreeSet;
 import java.util.UUID;
 
 import javax.enterprise.event.Event;
+import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import org.eclipse.jgit.api.CreateBranchCommand.SetupUpstreamMode;
@@ -67,8 +54,12 @@ import org.jboss.forge.shell.ShellColor;
 import org.jboss.forge.shell.ShellMessages;
 import org.jboss.forge.shell.ShellPrintWriter;
 import org.jboss.forge.shell.ShellPrompt;
+import org.jboss.forge.shell.command.PluginRegistry;
+import org.jboss.forge.shell.events.CommandExecuted;
+import org.jboss.forge.shell.events.CommandExecuted.Status;
 import org.jboss.forge.shell.events.ReinitializeEnvironment;
 import org.jboss.forge.shell.exceptions.Abort;
+import org.jboss.forge.shell.exceptions.NoSuchCommandException;
 import org.jboss.forge.shell.plugins.Alias;
 import org.jboss.forge.shell.plugins.Command;
 import org.jboss.forge.shell.plugins.DefaultCommand;
@@ -90,7 +81,9 @@ import org.jboss.forge.shell.util.ProxySettings;
 @Help("Forge control and writer environment commands. Manage plugins and other forge addons.")
 public class ForgePlugin implements Plugin
 {
+   private static final int LETTERS_NEEDED_TO_BE_REPLACED = 2;
    private static final String MODULE_TEMPLATE_XML = "/org/jboss/forge/modules/module-template.xml";
+
    private final Event<ReinitializeEnvironment> reinitializeEvent;
    private final ShellPrintWriter writer;
    private final DependencyResolver resolver;
@@ -98,11 +91,12 @@ public class ForgePlugin implements Plugin
    private final ShellPrompt prompt;
    private final Shell shell;
    private final Configuration configuration;
+   private final PluginRegistry pluginRegistry;
 
    @Inject
    public ForgePlugin(final ForgeEnvironment environment, final Event<ReinitializeEnvironment> reinitializeEvent,
             final ShellPrintWriter writer, final ShellPrompt prompt, final DependencyResolver resolver,
-            final Shell shell, final Configuration configuration)
+            final Shell shell, final Configuration configuration, final PluginRegistry pluginRegistry)
    {
       this.environment = environment;
       this.reinitializeEvent = reinitializeEvent;
@@ -111,6 +105,7 @@ public class ForgePlugin implements Plugin
       this.shell = shell;
       this.resolver = resolver;
       this.configuration = configuration;
+      this.pluginRegistry = pluginRegistry;
    }
 
    /*
@@ -169,7 +164,7 @@ public class ForgePlugin implements Plugin
    public void find(@Option(description = "search string") final String searchString, final PipeOut out)
             throws Exception
    {
-      List<PluginRef> pluginList = PluginUtil.findPlugin(shell, configuration, searchString);
+      List<PluginRef> pluginList = getPluginRefs(searchString);
 
       if (!pluginList.isEmpty())
       {
@@ -177,14 +172,19 @@ public class ForgePlugin implements Plugin
       }
       for (PluginRef ref : pluginList)
       {
-         out.println(" - " + out.renderColor(ShellColor.BOLD, ref.getName()) + " (" + ref.getArtifact() + ")");
-         out.println("\tAuthor: " + ref.getAuthor());
-         out.println("\tWebsite: " + ref.getWebsite());
-         out.println("\tLocation: " + ref.getLocation());
-         out.println("\tTags: " + ref.getTags());
-         out.println("\tDescription: " + ref.getDescription());
-         out.println();
+         displayPluginDetails(out, ref);
       }
+   }
+
+   private void displayPluginDetails(final ShellPrintWriter out, PluginRef ref)
+   {
+      out.println(" - " + out.renderColor(ShellColor.BOLD, ref.getName()) + " (" + ref.getArtifact() + ")");
+      out.println("\tAuthor: " + ref.getAuthor());
+      out.println("\tWebsite: " + ref.getWebsite());
+      out.println("\tLocation: " + ref.getLocation());
+      out.println("\tTags: " + ref.getTags());
+      out.println("\tDescription: " + ref.getDescription());
+      out.println();
    }
 
    @Command(value = "remove-plugin",
@@ -218,9 +218,9 @@ public class ForgePlugin implements Plugin
    public void installFromIndex(
             @Option(description = "plugin-name", completer = IndexPluginNameCompleter.class) final String pluginName,
             @Option(name = "version", description = "branch, tag, or version to build") final String version,
-            final PipeOut out) throws Exception
+            final ShellPrintWriter out) throws Exception
    {
-      List<PluginRef> plugins = PluginUtil.findPlugin(shell, configuration, pluginName);
+      List<PluginRef> plugins = getPluginRefs(pluginName);
 
       if (plugins.isEmpty())
       {
@@ -244,8 +244,12 @@ public class ForgePlugin implements Plugin
             throw new RuntimeException("ambiguous plugin query: multiple matches for [" + pluginName + "]");
       }
 
-      ShellMessages.info(out, "Preparing to install plugin: " + ref.getName());
+      installPlugin(version, out, ref);
+   }
 
+   private void installPlugin(final String version, final ShellPrintWriter out, PluginRef ref) throws Exception
+   {
+      ShellMessages.info(out, "Preparing to install plugin: " + ref.getName());
       if (!ref.isGit())
       {
          installFromMvnRepos(ref.getArtifact(), out, new DependencyRepositoryImpl("custom", ref.getHomeRepo()));
@@ -256,13 +260,21 @@ public class ForgePlugin implements Plugin
       }
    }
 
-   private void installFromMvnRepos(final Dependency dep, final PipeOut out, final DependencyRepository... repoList)
+   private List<PluginRef> getPluginRefs(final String pluginName) throws Exception
+   {
+      List<PluginRef> plugins = PluginUtil.findPlugin(shell, configuration, pluginName);
+      return plugins;
+   }
+
+   private void installFromMvnRepos(final Dependency dep, final ShellPrintWriter out,
+            final DependencyRepository... repoList)
             throws Exception
    {
       installFromMvnRepos(dep, out, Arrays.asList(repoList));
    }
 
-   private void installFromMvnRepos(final Dependency dep, final PipeOut out, final List<DependencyRepository> repoList)
+   private void installFromMvnRepos(final Dependency dep, final ShellPrintWriter out,
+            final List<DependencyRepository> repoList)
             throws Exception
    {
       List<DependencyResource> temp = resolver.resolveArtifacts(dep, repoList);
@@ -381,7 +393,7 @@ public class ForgePlugin implements Plugin
             @Option(description = "git repo", required = true) final String gitRepo,
             @Option(name = "ref", description = "branch or tag to build") final String refName,
             @Option(name = "checkoutDir", description = "directory in which to clone the repository") final Resource<?> checkoutDir,
-            final PipeOut out) throws Exception
+            final ShellPrintWriter out) throws Exception
    {
 
       DirectoryResource workspace = shell.getCurrentDirectory().createTempResource();
@@ -543,7 +555,7 @@ public class ForgePlugin implements Plugin
    /*
     * Helpers
     */
-   private void buildFromCurrentProject(final PipeOut out, final DirectoryResource buildDir) throws Abort
+   private void buildFromCurrentProject(final ShellPrintWriter out, final DirectoryResource buildDir) throws Abort
    {
       DirectoryResource savedLocation = shell.getCurrentDirectory();
       try
@@ -892,5 +904,66 @@ public class ForgePlugin implements Plugin
       dir = dir.getOrCreateChildDirectory("dependencies");
       dir = dir.getOrCreateChildDirectory(dep.getVersion());
       return dir;
+   }
+
+   /**
+    * Installs the plugin if missing
+    * 
+    * @param commandExecuted
+    */
+   public void handleMissingPlugin(@Observes CommandExecuted commandExecuted)
+   {
+      if (commandExecuted.getStatus() == Status.MISSING)
+      {
+         String pluginName = commandExecuted.getOriginalStatement().split(" ")[0];
+         Set<String> plugins = pluginRegistry.getPlugins().keySet();
+         ShellMessages.warn(shell, String.format(
+                  "The plugin '%s' was not found locally. Searching on the central plugin index ...", pluginName));
+         boolean showDidYouMean = true;
+         try
+         {
+            List<PluginRef> pluginRefs = getPluginRefs(pluginName);
+            if (pluginRefs.size() == 1)
+            {
+               PluginRef ref = pluginRefs.get(0);
+               displayPluginDetails(shell, ref);
+               boolean confirm = shell.promptBoolean("This plugin will be installed. Is that ok ?");
+               if (confirm)
+               {
+                  installPlugin(null, shell, ref);
+                  ShellMessages.success(writer, "Please execute the command again.");
+                  showDidYouMean = false;
+               }
+            }
+         }
+         catch (Exception ignored)
+         {
+         }
+         if (showDidYouMean)
+         {
+            // Find similar plugins
+            Set<String> similarPlugins = new TreeSet<String>(String.CASE_INSENSITIVE_ORDER);
+            for (String plugin : plugins)
+            {
+               if (Strings.getLevenshteinDistance(pluginName, plugin) < LETTERS_NEEDED_TO_BE_REPLACED)
+               {
+                  similarPlugins.add(plugin);
+               }
+            }
+            if (similarPlugins.isEmpty())
+            {
+               throw new NoSuchCommandException(commandExecuted.getCommand(), "No such command: "
+                        + commandExecuted.getOriginalStatement());
+            }
+            else
+            {
+               writer.println("Did you mean any of these ?");
+               for (String plugin : similarPlugins)
+               {
+                  writer.println(ShellColor.BOLD, "\t" + plugin);
+               }
+            }
+         }
+      }
    }
 }

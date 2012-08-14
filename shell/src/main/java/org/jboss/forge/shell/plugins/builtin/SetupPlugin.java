@@ -1,23 +1,8 @@
 /*
- * JBoss, Home of Professional Open Source
- * Copyright 2010, Red Hat, Inc., and individual contributors
- * by the @authors tag. See the copyright.txt in the distribution for a
- * full listing of individual contributors.
+ * Copyright 2012 Red Hat, Inc. and/or its affiliates.
  *
- * This is free software; you can redistribute it and/or modify it
- * under the terms of the GNU Lesser General Public License as
- * published by the Free Software Foundation; either version 2.1 of
- * the License, or (at your option) any later version.
- *
- * This software is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
- * Lesser General Public License for more details.
- *
- * You should have received a copy of the GNU Lesser General Public
- * License along with this software; if not, write to the Free
- * Software Foundation, Inc., 51 Franklin St, Fifth Floor, Boston, MA
- * 02110-1301 USA, or see the FSF site: http://www.fsf.org.
+ * Licensed under the Eclipse Public License version 1.0, available at
+ * http://www.eclipse.org/legal/epl-v10.html
  */
 package org.jboss.forge.shell.plugins.builtin;
 
@@ -45,33 +30,43 @@ import org.jboss.forge.shell.plugins.Topic;
 @RequiresProject
 @Help("Setup a plugin.")
 @Singleton
-public class SetupPlugin implements Plugin {
+public class SetupPlugin implements Plugin
+{
 
-	@Inject
-	private Shell shell;
+   @Inject
+   private Shell shell;
 
-	@Inject
-	private SetupPluginCompleter completer;
+   @Inject
+   private SetupPluginCompleter completer;
 
-	@Inject
-	private PluginRegistry registry;
+   @Inject
+   private PluginRegistry registry;
 
-	@Inject
-	@Current
-	private Resource<?> resource;
+   @Inject
+   @Current
+   private Resource<?> resource;
 
-	@DefaultCommand
-	public void run(@Option(description = "The plugins to set up", required = true, completer = SetupPluginCompleter.class) final String[] plugins, final PipeOut out) throws Exception {
-		for(String plugin : plugins) {
-			if (completer.getCompletionTokens().contains(plugin)) {
-				shell.execute(plugin + " setup");
-			} else if (registry.getPluginMetadataForScopeAndConstraints(plugin, shell) != null) {
-				throw new RuntimeException("Plugin does not have a [setup] method.");
-			} else {
-				throw new RuntimeException("No such plugin [" + plugin
-						+ "], or plugin not available for current Resource ["
-						+ resource.getClass().getName() + "]");
-			}
-		}
-	}
+   @DefaultCommand
+   public void run(
+            @Option(description = "The plugins to set up", required = true, completer = SetupPluginCompleter.class) final String[] plugins,
+            final PipeOut out) throws Exception
+   {
+      for (String plugin : plugins)
+      {
+         if (completer.getCompletionTokens().contains(plugin))
+         {
+            shell.execute(plugin + " setup");
+         }
+         else if (registry.getPluginMetadataForScopeAndConstraints(plugin, shell) != null)
+         {
+            throw new RuntimeException("Plugin does not have a [setup] method.");
+         }
+         else
+         {
+            throw new RuntimeException("No such plugin [" + plugin
+                     + "], or plugin not available for current Resource ["
+                     + resource.getClass().getName() + "]");
+         }
+      }
+   }
 }
