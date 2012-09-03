@@ -8,32 +8,36 @@
 package org.jboss.forge.shell.util;
 
 import java.io.File;
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.regex.Pattern;
+import java.util.regex.PatternSyntaxException;
 
 import org.jboss.forge.project.services.ResourceFactory;
 import org.jboss.forge.resources.DirectoryResource;
 import org.jboss.forge.resources.Resource;
 import org.jboss.forge.resources.ResourceFlag;
+import org.jboss.forge.resources.URLResource;
 
 /**
  * Parser of UNIX-style pathspec. The parser accepts a resource, and provides a result set of resources based on the
  * relative path provided.
  * <p/>
- * 
+ *
  * Example:<br/>
  * <code>
  *    List<Resource<?>> res = new PathspecParser(factoryInstance, relativeResource, "../../foobar");
  * </code>
- * 
+ *
  * Where <tt>factoryInstance</tt> is an instance of {@link ResourceFactory}, <tt>relativeResource</tt> is a resource,
  * such as a file or directory, for which the relative result for <tt>../../foobar</tt> will be calculated.
  * <p/>
- * 
+ *
  * Wildcards <tt>*</tt> and <tt>?</tt> are accepted.
- * 
+ *
  * @author Mike Brock
  */
 public class PathspecParser
@@ -68,7 +72,7 @@ public class PathspecParser
 
    /**
     * Resolve the results.
-    * 
+    *
     * @return A list of resources that match the path. Empty if there are no matches.
     */
    public List<Resource<?>> resolve()
@@ -103,6 +107,24 @@ public class PathspecParser
          int idx = path.indexOf(slashChar) + 1;
          r = new DirectoryResource(factory, new File(path.substring(0, idx)).getAbsoluteFile());
          cursor = idx;
+      }
+      // Is an URL ?
+      else if (path.matches(".*://.*"))
+      {
+         int idx = path.indexOf(" ");
+         if (idx == -1)
+         {
+            idx = length;
+         }
+         try
+         {
+            r = new URLResource(factory, new URL(path.substring(0, idx)));
+         }
+         catch (MalformedURLException e)
+         {
+            throw new RuntimeException(e);
+         }
+         cursor = idx + 1;
       }
 
       while (cursor < length)
@@ -145,7 +167,16 @@ public class PathspecParser
             {
                boolean startDot = tk.startsWith(".");
                String regex = pathspecToRegEx(tk.startsWith(slashString) ? tk.substring(1) : tk);
-               Pattern p = Pattern.compile(regex);
+               Pattern p;
+               try
+               {
+                  p = Pattern.compile(regex);
+               }
+               catch (PatternSyntaxException pe)
+               {
+                  // Regex might be incomplete, trying again quoted
+                  p = Pattern.compile(Pattern.quote(regex));
+               }
 
                List<Resource<?>> res = new LinkedList<Resource<?>>();
 
@@ -214,7 +245,7 @@ public class PathspecParser
    /**
     * Perform a search, by doing a breadth-first traversal of the resource tree for resources that match the path
     * string.
-    * 
+    *
     * @return A list of resources that match the path string. Empty if there are no matches.
     */
    public List<Resource<?>> search()
