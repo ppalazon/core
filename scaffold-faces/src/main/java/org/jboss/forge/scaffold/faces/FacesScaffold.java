@@ -297,7 +297,7 @@ public class FacesScaffold extends BaseFacet implements ScaffoldProvider
                   this.viewTemplate.render(context), overwrite));
 
          // Generate search
-         this.searchMetawidget.setValue(StaticFacesUtils.wrapExpression(beanName + ".search"));
+         this.searchMetawidget.setValue(StaticFacesUtils.wrapExpression(beanName + ".example"));
          this.searchMetawidget.setPath(entity.getQualifiedName());
          this.beanMetawidget.setValue(StaticFacesUtils.wrapExpression(beanName + ".pageItems"));
          this.beanMetawidget.setPath(viewBean.getQualifiedName() + "/pageItems");
@@ -404,6 +404,9 @@ public class FacesScaffold extends BaseFacet implements ScaffoldProvider
 
       result.add(ScaffoldUtil.createOrOverwrite(this.prompt, web.getWebResource("/resources/true.png"),
                getClass().getResourceAsStream("/scaffold/faces/true.png"), overwrite));
+
+      result.add(ScaffoldUtil.createOrOverwrite(this.prompt, web.getWebResource("/resources/jboss-community.png"),
+               getClass().getResourceAsStream("/scaffold/faces/jboss-community.png"), overwrite));
 
       return result;
    }
@@ -582,7 +585,7 @@ public class FacesScaffold extends BaseFacet implements ScaffoldProvider
          if (field.hasAnnotation(OneToOne.class))
          {
             Annotation<JavaClass> oneToOne = field.getAnnotation(OneToOne.class);
-            if (oneToOne.getStringValue("mappedBy") == null)
+            if (oneToOne.getStringValue("mappedBy") == null && oneToOne.getStringValue("cascade") == null)
             {
                oneToOne.setEnumValue("cascade", CascadeType.ALL);
             }
@@ -599,7 +602,7 @@ public class FacesScaffold extends BaseFacet implements ScaffoldProvider
          if (method.hasAnnotation(OneToOne.class))
          {
             Annotation<JavaClass> oneToOne = method.getAnnotation(OneToOne.class);
-            if (oneToOne.getStringValue("mappedBy") == null)
+            if (oneToOne.getStringValue("mappedBy") == null && oneToOne.getStringValue("cascade") == null)
             {
                oneToOne.setEnumValue("cascade", CascadeType.ALL);
             }
@@ -837,6 +840,7 @@ public class FacesScaffold extends BaseFacet implements ScaffoldProvider
                Field<?> field = (Field<?>) m;
                pkName = field.getName();
                pkType = field.getType();
+               nullablePkType = field.getType();
                break;
             }
 

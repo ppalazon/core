@@ -41,4 +41,25 @@ public class ForgeEnvironmentImplTest extends AbstractShellTest
       String version = getClass().getPackage().getImplementationVersion();
       Assert.assertEquals(version, environment.getRuntimeVersion());
    }
+
+   @Test
+   public void testIsEmbedded() throws Exception
+   {
+      boolean expected = Boolean.getBoolean("forge.compatibility.IDE");
+      Assert.assertEquals(expected, environment.isEmbedded());
+   }
+
+   @Test
+   public void testIsNotEmbeddedExplicitlySet() throws Exception
+   {
+      System.setProperty("forge.compatibility.IDE", "false");
+      Assert.assertFalse(environment.isEmbedded());
+   }
+
+   @Test
+   public void testIsEmbeddedExplicitlySet() throws Exception
+   {
+      System.setProperty("forge.compatibility.IDE", "true");
+      Assert.assertTrue(environment.isEmbedded());
+   }
 }

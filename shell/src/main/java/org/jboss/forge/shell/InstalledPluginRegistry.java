@@ -12,7 +12,6 @@ import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.List;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -28,7 +27,7 @@ import org.jboss.forge.shell.util.Streams;
 
 /**
  * Used to perform {@link Plugin} installation/registration operations.
- * 
+ *
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  * @author <a href="mailto:koen.aers@gmail.com">Koen Aers</a>
  */
@@ -43,6 +42,8 @@ public class InstalledPluginRegistry
 
    private static String PLUGIN_DIR = null;
    private static String REGISTRY = null;
+
+   private static final Pattern VERSION_PATTERN = Pattern.compile("(\\d+)\\.(\\d+)\\.(\\d+)(\\.|-)(.*)");
 
    private static String getPluginDir()
    {
@@ -78,7 +79,7 @@ public class InstalledPluginRegistry
 
       if (version != null)
       {
-         result = new ArrayList<InstalledPluginRegistry.PluginEntry>();
+         result = new ArrayList<PluginEntry>();
          for (PluginEntry entry : list)
          {
             if (isApiCompatible(version, entry))
@@ -254,134 +255,6 @@ public class InstalledPluginRegistry
       return get(plugin) != null;
    }
 
-   public static class PluginEntry
-   {
-      private final String name;
-      private final String apiVersion;
-      private final String slot;
-
-      public PluginEntry(final String name, final String apiVersion, final String slot)
-      {
-         this.name = name;
-         this.apiVersion = apiVersion;
-         this.slot = slot;
-      }
-
-      public PluginEntry(final String name, final String apiVersion)
-      {
-         this.name = name;
-         this.apiVersion = apiVersion;
-         this.slot = null;
-      }
-
-      public PluginEntry(final String name)
-      {
-         this.name = name;
-         this.apiVersion = null;
-         this.slot = null;
-      }
-
-      public String getName()
-      {
-         return name;
-      }
-
-      public String getApiVersion()
-      {
-         return apiVersion;
-      }
-
-      public String getSlot()
-      {
-         return slot;
-      }
-
-      @Override
-      public String toString()
-      {
-         return name + ":" + apiVersion + ":" + slot;
-      }
-
-      public static PluginEntry fromCoordinates(final String coordinates)
-      {
-         String[] split = coordinates.split(":");
-         List<String> tokens = Arrays.asList(split);
-
-         if (tokens.size() == 3)
-         {
-            if (Strings.isNullOrEmpty(tokens.get(0)))
-               throw new IllegalArgumentException("Name was empty [" + coordinates + "]");
-            if (Strings.isNullOrEmpty(tokens.get(1)))
-               throw new IllegalArgumentException("Version was empty [" + coordinates + "]");
-            if (Strings.isNullOrEmpty(tokens.get(2)))
-               throw new IllegalArgumentException("Slot was empty [" + coordinates + "]");
-
-            return new PluginEntry(tokens.get(0), tokens.get(1), tokens.get(2));
-         }
-         else
-         {
-            throw new IllegalArgumentException("Coordinates must be of the form 'name:apiVersion:slot'");
-         }
-
-      }
-
-      public String toModuleId()
-      {
-         return name + ":" + slot;
-      }
-
-      @Override
-      public int hashCode()
-      {
-         final int prime = 31;
-         int result = 1;
-         result = (prime * result) + ((apiVersion == null) ? 0 : apiVersion.hashCode());
-         result = (prime * result) + ((name == null) ? 0 : name.hashCode());
-         result = (prime * result) + ((slot == null) ? 0 : slot.hashCode());
-         return result;
-      }
-
-      @Override
-      public boolean equals(final Object obj)
-      {
-         if (this == obj)
-            return true;
-         if (obj == null)
-            return false;
-         if (getClass() != obj.getClass())
-            return false;
-         PluginEntry other = (PluginEntry) obj;
-         if (apiVersion == null)
-         {
-            if (other.apiVersion != null)
-               return false;
-         }
-         else if (!apiVersion.equals(other.apiVersion))
-            return false;
-         if (name == null)
-         {
-            if (other.name != null)
-               return false;
-         }
-         else if (!name.equals(other.name))
-            return false;
-         if (slot == null)
-         {
-            if (other.slot != null)
-               return false;
-         }
-         else if (!slot.equals(other.slot))
-            return false;
-         return true;
-      }
-
-      public String toCoordinates()
-      {
-         return toString();
-      }
-
-   }
-
    public static String getRuntimeAPIVersion()
    {
       return InstalledPluginRegistry.class.getPackage()
@@ -398,18 +271,37 @@ public class InstalledPluginRegistry
       return isApiCompatible(runtimeVersion, pluginApiVersion);
    }
 
+   /**
+    * This method only returns true if:
+    *
+    * - The major version of pluginApiVersion is equal to the major version of runtimeVersion AND
+    *
+    * - The minor version of pluginApiVersion is less or equal to the minor version of runtimeVersion
+    *
+    * @param runtimeVersion a version in the format x.x.x
+    * @param pluginApiVersion a version in the format x.x.x
+    * @return
+    */
    public static boolean isApiCompatible(CharSequence runtimeVersion, String pluginApiVersion)
    {
-      Pattern runtimeVersionPattern = Pattern.compile("(\\d+)\\.(\\d+)\\.(\\d+)(\\.|-)(.*)");
-      Matcher matcher = runtimeVersionPattern.matcher(runtimeVersion);
-      if (matcher.matches())
+      Matcher runtimeMatcher = VERSION_PATTERN.matcher(runtimeVersion);
+      if (runtimeMatcher.matches())
       {
-         if (pluginApiVersion.matches(matcher.group(1) + "\\." + matcher.group(2) + "\\.(\\d+).*"))
+         int runtimeMajorVersion = Integer.parseInt(runtimeMatcher.group(1));
+         int runtimeMinorVersion = Integer.parseInt(runtimeMatcher.group(2));
+
+         Matcher pluginApiMatcher = VERSION_PATTERN.matcher(pluginApiVersion);
+         if (pluginApiMatcher.matches())
          {
-            return true;
+            int pluginApiMajorVersion = Integer.parseInt(pluginApiMatcher.group(1));
+            int pluginApiMinorVersion = Integer.parseInt(pluginApiMatcher.group(2));
+
+            if (pluginApiMajorVersion == runtimeMajorVersion && pluginApiMinorVersion <= runtimeMinorVersion)
+            {
+               return true;
+            }
          }
       }
-
       return false;
    }
 }
