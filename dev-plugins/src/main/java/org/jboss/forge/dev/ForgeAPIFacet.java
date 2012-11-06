@@ -18,6 +18,7 @@ import org.jboss.forge.project.dependencies.ScopeType;
 import org.jboss.forge.project.facets.BaseFacet;
 import org.jboss.forge.project.facets.DependencyFacet;
 import org.jboss.forge.project.facets.PackagingFacet;
+import org.jboss.forge.project.facets.ResourceFacet;
 import org.jboss.forge.project.packaging.PackagingType;
 import org.jboss.forge.shell.Shell;
 import org.jboss.forge.shell.plugins.Alias;
@@ -29,7 +30,7 @@ import org.jboss.forge.spec.javaee.CDIFacet;
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
 @Alias("forge.api")
-@RequiresFacet({ DependencyFacet.class, PackagingFacet.class, CDIFacet.class })
+@RequiresFacet({ DependencyFacet.class, PackagingFacet.class, CDIFacet.class, ResourceFacet.class })
 @RequiresPackagingType(PackagingType.JAR)
 public class ForgeAPIFacet extends BaseFacet
 {
@@ -46,7 +47,7 @@ public class ForgeAPIFacet extends BaseFacet
       DependencyFacet deps = project.getFacet(DependencyFacet.class);
 
       List<Dependency> versions = deps.resolveAvailableVersions("org.jboss.forge:forge-shell-api:[,]");
-      Dependency version = shell.promptChoiceTyped("Install which version of the Forge API?", versions);
+      Dependency version = shell.promptChoiceTyped("Install which version of the Forge API?", versions, versions.get(versions.size() - 1));
       deps.setProperty("forge.api.version", version.getVersion());
       DependencyBuilder apiDep = DependencyBuilder.create("org.jboss.forge:forge-shell-api:${forge.api.version}")
                .setScopeType(ScopeType.PROVIDED);
@@ -58,6 +59,9 @@ public class ForgeAPIFacet extends BaseFacet
       installer.install(project, apiDep);
       installer.install(project, testDep);
       installer.install(project, testShellDep);
+
+      project.getFacet(ResourceFacet.class).createResource("<forge/>".toCharArray(), "META-INF/forge.xml");
+
       return true;
    }
 
