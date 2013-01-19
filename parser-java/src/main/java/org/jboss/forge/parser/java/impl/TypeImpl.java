@@ -92,7 +92,8 @@ public class TypeImpl<O extends JavaSource<O>> implements Type<O>
       if (type instanceof ParameterizedType)
       {
          List<org.eclipse.jdt.core.dom.Type> arguments = ((ParameterizedType) type).typeArguments();
-         for (org.eclipse.jdt.core.dom.Type t : arguments) {
+         for (org.eclipse.jdt.core.dom.Type t : arguments)
+         {
             result.add(new TypeImpl<O>(origin, this, t));
          }
       }
@@ -149,7 +150,19 @@ public class TypeImpl<O extends JavaSource<O>> implements Type<O>
    public String getName()
    {
       String result = type.toString();
-      return Types.stripGenerics(result);
+      if (isParameterized())
+      {
+         if (isArray())
+         {
+            result = Types.stripArray(result);
+         }
+         result = Types.stripGenerics(result);
+         if (isArray())
+         {
+            result += "[]";
+         }
+      }
+      return result;
    }
 
    @Override
@@ -163,6 +176,16 @@ public class TypeImpl<O extends JavaSource<O>> implements Type<O>
    public Type<O> getParentType()
    {
       return parent;
+   }
+
+   @Override
+   public int getArrayDimensions()
+   {
+      if (isArray())
+      {
+         return ((ArrayType) type).getDimensions();
+      }
+      return -1;
    }
 
    @Override

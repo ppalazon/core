@@ -1,19 +1,31 @@
 /*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2012-2013 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
  */
 package org.jboss.forge.spec.javaee.cdi;
 
+import static java.lang.annotation.ElementType.FIELD;
+import static java.lang.annotation.ElementType.METHOD;
+import static java.lang.annotation.ElementType.PARAMETER;
+import static java.lang.annotation.ElementType.TYPE;
+import static java.lang.annotation.RetentionPolicy.RUNTIME;
+
 import java.io.FileNotFoundException;
+import java.lang.annotation.Documented;
+import java.lang.annotation.Inherited;
+import java.lang.annotation.Retention;
+import java.lang.annotation.Target;
 import java.util.List;
 
 import javax.enterprise.context.Conversation;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
+import javax.inject.Qualifier;
 
 import org.jboss.forge.parser.JavaParser;
+import org.jboss.forge.parser.java.JavaAnnotation;
 import org.jboss.forge.parser.java.JavaClass;
 import org.jboss.forge.parser.java.Method;
 import org.jboss.forge.parser.java.SyntaxError;
@@ -220,32 +232,57 @@ public class BeansPlugin implements Plugin
             @Option(required = false, name = "overwrite") final boolean overwrite
             ) throws FileNotFoundException
    {
-      if (!resource.exists() || overwrite)
-      {
-         JavaSourceFacet java = project.getFacet(JavaSourceFacet.class);
-         if (resource.createNewFile())
-         {
-            JavaClass javaClass = JavaParser.create(JavaClass.class);
-            javaClass.setName(java.calculateName(resource));
-            javaClass.setPackage(java.calculatePackage(resource));
-
-            if (BeanScope.CUSTOM.equals(scope))
-            {
-               String annoType = prompt.promptCommon("Enter the qualified custom scope type:", PromptType.JAVA_CLASS);
-               javaClass.addAnnotation(annoType);
-            }
-            else if (!BeanScope.DEPENDENT.equals(scope))
-            {
-               javaClass.addAnnotation(scope.getAnnotation());
-            }
-            resource.setContents(javaClass);
-            pickup.fire(new PickupResource(resource));
-         }
-      }
-      else
+      if (!resource.createNewFile() && !overwrite)
       {
          throw new RuntimeException("Type already exists [" + resource.getFullyQualifiedName()
                   + "] Re-run with '--overwrite' to continue.");
       }
+      JavaSourceFacet java = project.getFacet(JavaSourceFacet.class);
+      JavaClass javaClass = JavaParser.create(JavaClass.class);
+      javaClass.setName(java.calculateName(resource));
+      javaClass.setPackage(java.calculatePackage(resource));
+
+      if (BeanScope.CUSTOM == scope)
+      {
+         String annoType = prompt.promptCommon("Enter the qualified custom scope type:", PromptType.JAVA_CLASS);
+         javaClass.addAnnotation(annoType);
+      }
+      else if (BeanScope.DEPENDENT != scope)
+      {
+         javaClass.addAnnotation(scope.getAnnotation());
+      }
+      resource.setContents(javaClass);
+      pickup.fire(new PickupResource(resource));
+   }
+
+   @Command("new-qualifier")
+   public void newQualifier(
+            @Option(required = true,
+                     name = "type") final JavaResource resource,
+            @Option(required = false, name = "overwrite") final boolean overwrite,
+            @Option(required = false, name = "inherited") final boolean inherited
+            ) throws FileNotFoundException
+   {
+      if (!resource.createNewFile() && !overwrite)
+      {
+         throw new RuntimeException("Type already exists [" + resource.getFullyQualifiedName()
+                  + "] Re-run with '--overwrite' to continue.");
+      }
+
+      JavaSourceFacet java = project.getFacet(JavaSourceFacet.class);
+      JavaAnnotation qualifier = JavaParser.create(JavaAnnotation.class);
+      qualifier.setName(java.calculateName(resource));
+      qualifier.setPackage(java.calculatePackage(resource));
+      qualifier.addAnnotation(Qualifier.class);
+      if (inherited)
+      {
+         qualifier.addAnnotation(Inherited.class);
+      }
+      qualifier.addAnnotation(Retention.class).setEnumValue(RUNTIME);
+      qualifier.addAnnotation(Target.class).setEnumValue(METHOD, FIELD, PARAMETER, TYPE);
+      qualifier.addAnnotation(Documented.class);
+
+      resource.setContents(qualifier);
+      pickup.fire(new PickupResource(resource));
    }
 }

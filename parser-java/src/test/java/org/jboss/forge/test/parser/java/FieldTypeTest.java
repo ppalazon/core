@@ -205,4 +205,42 @@ public class FieldTypeTest
       Assert.assertEquals("java.util.List", arguments.get(1).getQualifiedName());
    }
 
+   @Test
+   public void testFieldTypeByteArrayTest()
+   {
+      final JavaClass javaClass = JavaParser.create(JavaClass.class);
+      final Field<JavaClass> field = javaClass.addField();
+      field.setName("content");
+      field.setType(byte[].class);
+      Assert.assertEquals("byte", field.getQualifiedType());
+      Assert.assertTrue(field.getTypeInspector().isArray());
+   }
+
+   @Test
+   public void testFieldMultidimensionalArray()
+   {
+      final JavaClass javaClass = JavaParser.create(JavaClass.class);
+      final Field<JavaClass> field = javaClass.addField();
+      field.setName("content");
+      field.setType(byte[][][].class);
+      Assert.assertEquals("byte", field.getQualifiedType());
+      Type<JavaClass> typeInspector = field.getTypeInspector();
+      Assert.assertTrue(typeInspector.isArray());
+      Assert.assertEquals(3, typeInspector.getArrayDimensions());
+   }
+
+
+   @Test
+   public void testFieldMultidimensionalArray2()
+   {
+      final JavaClass javaClass = JavaParser.create(JavaClass.class);
+      final Field<JavaClass> field = javaClass.addField();
+      field.setName("content");
+      field.setType(java.util.Vector[][][].class);
+      Assert.assertEquals("java.util.Vector", field.getQualifiedType());
+      Type<JavaClass> typeInspector = field.getTypeInspector();
+      Assert.assertTrue(typeInspector.isArray());
+      Assert.assertEquals(3, typeInspector.getArrayDimensions());
+      Assert.assertEquals("Vector", field.getType());
+   }
 }

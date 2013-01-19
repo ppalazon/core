@@ -8,7 +8,6 @@ package org.jboss.forge.test.parser.java;
 
 import org.jboss.forge.parser.JavaParser;
 import org.jboss.forge.parser.java.JavaClass;
-import org.jboss.forge.parser.java.JavaType;
 import org.jboss.forge.test.parser.java.common.InterfacedTestBase;
 
 /**
@@ -17,7 +16,7 @@ import org.jboss.forge.test.parser.java.common.InterfacedTestBase;
 public class JavaClassInterfaceTest extends InterfacedTestBase<JavaClass>
 {
    @Override
-   protected JavaType<JavaClass> getSource()
+   protected JavaClass getSource()
    {
       return JavaParser.parse(JavaClass.class, "public class MockClass {}");
    }

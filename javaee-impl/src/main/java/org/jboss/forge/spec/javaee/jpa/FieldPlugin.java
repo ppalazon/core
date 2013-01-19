@@ -29,6 +29,7 @@ import org.jboss.forge.parser.java.Field;
 import org.jboss.forge.parser.java.JavaClass;
 import org.jboss.forge.parser.java.JavaSource;
 import org.jboss.forge.parser.java.util.Refactory;
+import org.jboss.forge.parser.java.util.Strings;
 import org.jboss.forge.parser.java.util.Types;
 import org.jboss.forge.project.Project;
 import org.jboss.forge.project.facets.JavaSourceFacet;
@@ -274,8 +275,17 @@ public class FieldPlugin implements Plugin
 
       try
       {
-         JavaClass fieldEntityClass = findEntity(fieldType);
          JavaClass entityClass = getJavaClass();
+         JavaClass fieldEntityClass;
+         if (areTypesSame(fieldType, entityClass.getCanonicalName()))
+         {
+            fieldEntityClass = entityClass;
+         }
+         else
+         {
+            fieldEntityClass = findEntity(fieldType);
+         }
+
          Field<JavaClass> localField = addFieldTo(entityClass, fieldEntityClass, fieldName, OneToOne.class);
          if ((inverseFieldName != null) && !inverseFieldName.isEmpty())
          {
@@ -311,24 +321,47 @@ public class FieldPlugin implements Plugin
       try
       {
          JavaClass entity = getJavaClass();
-         JavaClass otherEntity = findEntity(fieldType);
+         JavaClass otherEntity;
+         if (areTypesSame(fieldType, entity.getCanonicalName()))
+         {
+            otherEntity = entity;
+         }
+         else
+         {
+            otherEntity = findEntity(fieldType);
+            entity.addImport(otherEntity.getQualifiedName());
+         }
+
+         if (entity.hasField(fieldName))
+         {
+            throw new IllegalStateException("Entity [" + entity.getCanonicalName() + "] already has a field named ["
+                     + fieldName + "]");
+         }
+         if (!Strings.isNullOrEmpty(inverseFieldName) && otherEntity.hasField(inverseFieldName))
+         {
+            throw new IllegalStateException("Entity [" + otherEntity.getCanonicalName()
+                     + "] already has a field named ["
+                     + inverseFieldName + "]");
+         }
 
          entity.addImport(Set.class);
          entity.addImport(HashSet.class);
-         entity.addImport(otherEntity.getQualifiedName());
          Field<JavaClass> field = entity.addField("private Set<" + otherEntity.getName() + "> " + fieldName
                   + "= new HashSet<"
                   + otherEntity.getName() + ">();");
          Annotation<JavaClass> annotation = field.addAnnotation(ManyToMany.class);
          Refactory.createGetterAndSetter(entity, field);
 
-         if ((inverseFieldName != null) && !inverseFieldName.isEmpty())
+         if (!Strings.isNullOrEmpty(inverseFieldName))
          {
             annotation.setStringValue("mappedBy", inverseFieldName);
 
             otherEntity.addImport(Set.class);
             otherEntity.addImport(HashSet.class);
-            otherEntity.addImport(entity.getQualifiedName());
+            if (!otherEntity.getCanonicalName().equals(entity.getCanonicalName()))
+            {
+               otherEntity.addImport(entity.getQualifiedName());
+            }
             Field<JavaClass> otherField = otherEntity.addField("private Set<" + entity.getName() + "> "
                      + inverseFieldName
                      + "= new HashSet<" + entity.getName() + ">();");
@@ -366,24 +399,47 @@ public class FieldPlugin implements Plugin
       try
       {
          JavaClass one = getJavaClass();
-         JavaClass many = findEntity(fieldType);
+         JavaClass many;
+         // Field type may end with .java
+         if (areTypesSame(fieldType, one.getCanonicalName()))
+         {
+            many = one;
+         }
+         else
+         {
+            many = findEntity(fieldType);
+            one.addImport(many.getQualifiedName());
+         }
+
+         if (one.hasField(fieldName))
+         {
+            throw new IllegalStateException("Entity [" + one.getCanonicalName() + "] already has a field named ["
+                     + fieldName + "]");
+         }
+         if (!Strings.isNullOrEmpty(inverseFieldName) && many.hasField(inverseFieldName))
+         {
+            throw new IllegalStateException("Entity [" + many.getCanonicalName() + "] already has a field named ["
+                     + inverseFieldName + "]");
+         }
 
          one.addImport(Set.class);
          one.addImport(HashSet.class);
-         one.addImport(many.getQualifiedName());
+
          Field<JavaClass> oneField = one.addField("private Set<" + many.getName() + "> " + fieldName + "= new HashSet<"
                   + many.getName() + ">();");
          Annotation<JavaClass> annotation = oneField.addAnnotation(OneToMany.class);
          Refactory.createGetterAndSetter(one, oneField);
 
-         if ((inverseFieldName != null) && !inverseFieldName.isEmpty())
+         if (!Strings.isNullOrEmpty(inverseFieldName))
          {
             annotation.setStringValue("mappedBy", inverseFieldName);
             annotation.setLiteralValue("cascade", "CascadeType.ALL");
             annotation.getOrigin().addImport(CascadeType.class);
             annotation.setLiteralValue("orphanRemoval", "true");
-
-            many.addImport(one);
+            if (!many.getCanonicalName().equals(one.getCanonicalName()))
+            {
+               many.addImport(one);
+            }
             Field<JavaClass> manyField = many.addField("private " + one.getName() + " " + inverseFieldName + ";");
             manyField.addAnnotation(ManyToOne.class);
             Refactory.createGetterAndSetter(many, manyField);
@@ -417,18 +473,39 @@ public class FieldPlugin implements Plugin
       try
       {
          JavaClass many = getJavaClass();
-         JavaClass one = findEntity(fieldType);
+         JavaClass one;
+         if (areTypesSame(fieldType, many.getCanonicalName()))
+         {
+            one = many;
+         }
+         else
+         {
+            one = findEntity(fieldType);
+            many.addImport(one);
+         }
+         if (many.hasField(fieldName))
+         {
+            throw new IllegalStateException("Entity [" + many.getCanonicalName() + "] already has a field named ["
+                     + fieldName + "]");
+         }
+         if (!Strings.isNullOrEmpty(inverseFieldName) && one.hasField(inverseFieldName))
+         {
+            throw new IllegalStateException("Entity [" + one.getCanonicalName() + "] already has a field named ["
+                     + inverseFieldName + "]");
+         }
 
-         many.addImport(one);
          Field<JavaClass> manyField = many.addField("private " + one.getName() + " " + fieldName + ";");
          manyField.addAnnotation(ManyToOne.class);
          Refactory.createGetterAndSetter(many, manyField);
 
-         if ((inverseFieldName != null) && !inverseFieldName.isEmpty())
+         if (!Strings.isNullOrEmpty(inverseFieldName))
          {
             one.addImport(Set.class);
             one.addImport(HashSet.class);
-            one.addImport(many.getQualifiedName());
+            if (!one.getCanonicalName().equals(many.getCanonicalName()))
+            {
+               one.addImport(many.getQualifiedName());
+            }
             Field<JavaClass> oneField = one.addField("private Set<" + many.getName() + "> " + inverseFieldName
                      + "= new HashSet<"
                      + many.getName() + ">();");
@@ -458,14 +535,18 @@ public class FieldPlugin implements Plugin
    {
       if (targetEntity.hasField(fieldName))
       {
-         throw new IllegalStateException("Entity already has a field named [" + fieldName + "]");
+         throw new IllegalStateException("Entity [" + targetEntity.getCanonicalName() + "] already has a field named ["
+                  + fieldName + "]");
       }
 
       JavaSourceFacet java = project.getFacet(JavaSourceFacet.class);
 
       Field<JavaClass> field = targetEntity.addField();
       field.setName(fieldName).setPrivate().setType(fieldEntity.getName()).addAnnotation(annotation);
-      targetEntity.addImport(fieldEntity.getQualifiedName());
+      if (!targetEntity.getCanonicalName().equals(fieldEntity.getCanonicalName()))
+      {
+         targetEntity.addImport(fieldEntity.getQualifiedName());
+      }
       Refactory.createGetterAndSetter(targetEntity, field);
       updateToString(targetEntity);
 
@@ -487,7 +568,10 @@ public class FieldPlugin implements Plugin
 
       Field<JavaClass> field = targetEntity.addField();
       field.setName(fieldName).setPrivate().setType(Types.toSimpleName(fieldType)).addAnnotation(annotation);
-      targetEntity.addImport(fieldType);
+      if (!targetEntity.getCanonicalName().equals(fieldType))
+      {
+         targetEntity.addImport(fieldType);
+      }
       Refactory.createGetterAndSetter(targetEntity, field);
 
       updateToString(targetEntity);
@@ -510,7 +594,8 @@ public class FieldPlugin implements Plugin
 
       Field<JavaClass> field = targetEntity.addField();
       field.setName(fieldName).setPrivate().setType(fieldType).addAnnotation(Temporal.class).setEnumValue(temporalType);
-      if (!fieldType.getName().startsWith("java.lang.") && !fieldType.isPrimitive())
+      if (!fieldType.getName().startsWith("java.lang.") && !fieldType.isPrimitive()
+               && !fieldType.getCanonicalName().equals(targetEntity.getCanonicalName()))
       {
          targetEntity.addImport(fieldType);
       }
@@ -534,7 +619,8 @@ public class FieldPlugin implements Plugin
 
       Field<JavaClass> field = targetEntity.addField();
       field.setName(fieldName).setPrivate().setType(fieldType).addAnnotation(annotation);
-      if (!fieldType.getName().startsWith("java.lang.") && !fieldType.isPrimitive())
+      if (!fieldType.getCanonicalName().startsWith("java.lang.") && !fieldType.isPrimitive()
+               && !fieldType.getCanonicalName().equals(targetEntity.getCanonicalName()))
       {
          targetEntity.addImport(fieldType);
       }
@@ -579,6 +665,20 @@ public class FieldPlugin implements Plugin
          throw new RuntimeException("Current resource is not a JavaResource!");
       }
 
+   }
+
+   /**
+    * Checks if the types are the same, removing the ".java" in the end of the string in case it exists
+    *
+    * @param from
+    * @param to
+    * @return
+    */
+   private boolean areTypesSame(String from, String to)
+   {
+      String fromCompare = from.endsWith(".java") ? from.substring(0, from.length() - 5) : from;
+      String toCompare = to.endsWith(".java") ? to.substring(0, to.length() - 5) : to;
+      return fromCompare.equals(toCompare);
    }
 
    private JavaClass getJavaClassFrom(final Resource<?> resource) throws FileNotFoundException

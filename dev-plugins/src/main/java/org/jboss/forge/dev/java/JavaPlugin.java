@@ -1,5 +1,5 @@
 /*
- * Copyright 2012 Red Hat, Inc. and/or its affiliates.
+ * Copyright 2012-2013 Red Hat, Inc. and/or its affiliates.
  *
  * Licensed under the Eclipse Public License version 1.0, available at
  * http://www.eclipse.org/legal/epl-v10.html
@@ -9,6 +9,9 @@ package org.jboss.forge.dev.java;
 
 import java.io.FileNotFoundException;
 import java.io.InputStream;
+import java.lang.annotation.Documented;
+import java.lang.annotation.Retention;
+import java.lang.annotation.RetentionPolicy;
 import java.util.Arrays;
 import java.util.List;
 import java.util.Map.Entry;
@@ -19,6 +22,7 @@ import javax.inject.Inject;
 import org.jboss.forge.parser.JavaParser;
 import org.jboss.forge.parser.java.FieldHolder;
 import org.jboss.forge.parser.java.Import;
+import org.jboss.forge.parser.java.JavaAnnotation;
 import org.jboss.forge.parser.java.JavaClass;
 import org.jboss.forge.parser.java.JavaEnum;
 import org.jboss.forge.parser.java.JavaInterface;
@@ -49,7 +53,7 @@ import org.jboss.forge.shell.util.JavaColorizer;
 
 /**
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
- * 
+ *
  */
 @Alias("java")
 @RequiresFacet(JavaSourceFacet.class)
@@ -244,6 +248,78 @@ public class JavaPlugin implements Plugin
       pickUp.fire(new PickupResource(java.getEnumTypeResource(je)));
    }
 
+   @Command("new-annotation-type")
+   public void newAnnotationType(
+            @PipeIn final InputStream in,
+            @Option(required = false,
+                     help = "the package in which to build this Class",
+                     description = "source package",
+                     type = PromptType.JAVA_PACKAGE,
+                     name = "package") final String pckg,
+            @Option(required = false,
+                     help = "the @Retention policy for this annotation",
+                     description = "retention policy",
+                     name = "retention-policy") final RetentionPolicy retentionPolicy,
+            @Option(required = false,
+                     help = "whether the annotation is @Documented",
+                     description = "documented",
+                     name = "documented") final boolean documented,
+            @Option(required = false,
+                     help = "the annotation definition: surround with quotes",
+                     description = "annotation definition") final String... def) throws FileNotFoundException
+   {
+      JavaSourceFacet java = project.getFacet(JavaSourceFacet.class);
+
+      JavaAnnotation type = null;
+      if (def != null)
+      {
+         String classDef = Strings.join(Arrays.asList(def), " ");
+         type = JavaParser.parse(JavaAnnotation.class, classDef);
+      }
+      else if (in != null)
+      {
+         type = JavaParser.parse(JavaAnnotation.class, in);
+      }
+      else
+      {
+         throw new RuntimeException("arguments required");
+      }
+
+      if (pckg != null)
+      {
+         type.setPackage(pckg);
+      }
+
+      if (documented)
+      {
+         type.addAnnotation(Documented.class);
+      }
+      if (retentionPolicy != null)
+      {
+         type.addAnnotation(Retention.class).setEnumValue(retentionPolicy);
+      }
+      if (!type.hasSyntaxErrors())
+      {
+         java.saveJavaSource(type);
+      }
+      else
+      {
+         writer.println(ShellColor.RED, "Syntax Errors:");
+         for (SyntaxError error : type.getSyntaxErrors())
+         {
+            writer.println(error.toString());
+         }
+         writer.println();
+
+         if (prompt.promptBoolean("Your annotation has syntax errors, create anyway?", true))
+         {
+            java.saveJavaSource(type);
+         }
+      }
+
+      pickUp.fire(new PickupResource(java.getJavaResource(type)));
+   }
+
    @Command("new-enum-const")
    @RequiresResource(JavaResource.class)
    public void newEnumConst(
@@ -368,6 +444,65 @@ public class JavaPlugin implements Plugin
          }
 
          clazz.addMethod(methodDef);
+         java.saveJavaSource(source);
+      }
+   }
+
+   @Command("new-annotation-element")
+   @RequiresResource(JavaResource.class)
+   public void newAnnotationElement(
+            @PipeIn final String in,
+            final PipeOut out,
+            @Option(name = "name", required = false, help = "the annotation element name; use with --type", description = "annotation element name") final String name,
+            @Option(name = "type", required = false, help = "the annotation element type; use with --name", description = "annotation element type") final String type,
+            @Option(required = false,
+                     help = "the annotation element definition: surround with single quotes",
+                     description = "annotation element definition") final String... def) throws FileNotFoundException
+   {
+      JavaSourceFacet java = project.getFacet(JavaSourceFacet.class);
+
+      String elementDef = null;
+      if (def != null)
+      {
+         elementDef = Strings.join(Arrays.asList(def), " ");
+      }
+      else if (in != null)
+      {
+         elementDef = in;
+      }
+      else if (Strings.isNullOrEmpty(name) || Strings.isNullOrEmpty(type))
+      {
+         throw new RuntimeException("arguments required");
+      }
+
+      JavaSource<?> source = resource.getJavaSource();
+      if (source.isAnnotation())
+      {
+         JavaAnnotation parent = JavaAnnotation.class.cast(source);
+
+         String addName;
+         if (elementDef != null)
+         {
+            addName = JavaParser.parse(JavaAnnotation.class, "public @interface Temp{}").addAnnotationElement(elementDef).getName();
+         }
+         else
+         {
+            addName = name;
+         }
+
+         if (parent.hasAnnotationElement(addName))
+         {
+            throw new IllegalStateException("Element named [" + addName + "] already exists.");
+         }
+
+         if (elementDef != null)
+         {
+            parent.addAnnotationElement(elementDef);
+         }
+         else
+         {
+            parent.addAnnotationElement().setName(name).setType(type);
+         }
          java.saveJavaSource(source);
       }
    }

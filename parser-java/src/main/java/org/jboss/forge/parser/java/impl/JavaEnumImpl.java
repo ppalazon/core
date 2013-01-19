@@ -22,10 +22,10 @@ import org.jboss.forge.parser.java.SourceType;
 
 /**
  * Represents a Java Source File containing an Enum Type.
- * 
+ *
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
  */
-public class JavaEnumImpl extends AbstractJavaSource<JavaEnum> implements JavaEnum
+public class JavaEnumImpl extends AbstractJavaSourceMemberHolder<JavaEnum> implements JavaEnum
 {
    public JavaEnumImpl(JavaSource<?> enclosingType, final Document document, final CompilationUnit unit,
             BodyDeclaration body)

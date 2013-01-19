@@ -8,7 +8,6 @@ package org.jboss.forge.parser.java.impl;
 
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.Iterator;
 import java.util.List;
 import java.util.ServiceLoader;
 
@@ -24,7 +23,6 @@ import org.eclipse.jdt.core.dom.Modifier.ModifierKeyword;
 import org.eclipse.jdt.core.dom.PackageDeclaration;
 import org.eclipse.jdt.core.dom.Type;
 import org.eclipse.jdt.core.dom.TypeDeclaration;
-import org.eclipse.jdt.core.dom.TypeParameter;
 import org.eclipse.jface.text.Document;
 import org.eclipse.text.edits.TextEdit;
 import org.jboss.forge.parser.JavaParser;
@@ -39,9 +37,11 @@ import org.jboss.forge.parser.java.SyntaxError;
 import org.jboss.forge.parser.java.Visibility;
 import org.jboss.forge.parser.java.ast.AnnotationAccessor;
 import org.jboss.forge.parser.java.ast.ModifierAccessor;
+import org.jboss.forge.parser.java.ast.TypeDeclarationFinderVisitor;
 import org.jboss.forge.parser.java.util.Formatter;
 import org.jboss.forge.parser.java.util.Strings;
 import org.jboss.forge.parser.java.util.Types;
+import org.jboss.forge.parser.spi.JavaParserImpl;
 import org.jboss.forge.parser.spi.WildcardImportResolver;
 
 /**
@@ -162,24 +162,25 @@ public abstract class AbstractJavaSource<O extends JavaSource<O>> implements
    @Override
    public Import addImport(final String className)
    {
+      String strippedClassName = Types.stripGenerics(Types.stripArray(className));
       Import imprt;
-      if (Types.isSimpleName(className) && !hasImport(className))
+      if (Types.isSimpleName(strippedClassName) && !hasImport(strippedClassName))
       {
-         throw new IllegalArgumentException("Cannot import class without a package [" + className + "]");
+         throw new IllegalArgumentException("Cannot import class without a package [" + strippedClassName + "]");
       }
 
-      if (!hasImport(className) && validImport(className))
+      if (!hasImport(strippedClassName) && validImport(strippedClassName))
       {
-         imprt = new ImportImpl(this).setName(className);
+         imprt = new ImportImpl(this).setName(strippedClassName);
          unit.imports().add(imprt.getInternal());
       }
-      else if (hasImport(className))
+      else if (hasImport(strippedClassName))
       {
-         imprt = getImport(className);
+         imprt = getImport(strippedClassName);
       }
       else
       {
-         throw new IllegalArgumentException("Attempted to import the illegal type [" + className + "]");
+         throw new IllegalArgumentException("Attempted to import the illegal type [" + strippedClassName + "]");
       }
       return imprt;
    }
@@ -250,7 +251,16 @@ public abstract class AbstractJavaSource<O extends JavaSource<O>> implements
    @Override
    public boolean hasImport(final String type)
    {
-      return getImport(type) != null;
+      String resultType = type;
+      if (Types.isArray(type))
+      {
+         resultType = Types.stripArray(type);
+      }
+      if (Types.isGeneric(type))
+      {
+         resultType = Types.stripGenerics(type);
+      }
+      return getImport(resultType) != null;
    }
 
    @Override
@@ -262,9 +272,18 @@ public abstract class AbstractJavaSource<O extends JavaSource<O>> implements
    @Override
    public boolean requiresImport(final String type)
    {
-      if (!validImport(type)
-               || hasImport(type)
-               || type.startsWith("java.lang."))
+      String resultType = type;
+      if (Types.isArray(resultType))
+      {
+         resultType = Types.stripArray(type);
+      }
+      if (Types.isGeneric(resultType))
+      {
+         resultType = Types.stripGenerics(resultType);
+      }
+      if (!validImport(resultType)
+               || hasImport(resultType)
+               || Types.isJavaLang(resultType))
       {
          return false;
       }
@@ -277,11 +296,6 @@ public abstract class AbstractJavaSource<O extends JavaSource<O>> implements
       String original = type;
       String result = type;
 
-      if (Types.isPrimitive(result))
-      {
-         return result;
-      }
-
       // Strip away any characters that might hinder the type matching process
       if (Types.isArray(result))
       {
@@ -293,6 +307,11 @@ public abstract class AbstractJavaSource<O extends JavaSource<O>> implements
       {
          original = Types.stripGenerics(result);
          result = Types.stripGenerics(result);
+      }
+
+      if (Types.isPrimitive(result))
+      {
+         return result;
       }
 
       // Check for direct import matches first since they are the fastest and least work-intensive
@@ -365,7 +384,7 @@ public abstract class AbstractJavaSource<O extends JavaSource<O>> implements
 
    private boolean validImport(final String type)
    {
-      return (type != null) && !type.matches("byte|short|int|long|float|double|char|boolean");
+      return !Strings.isNullOrEmpty(type) && !Types.isPrimitive(type);
    }
 
    @Override
@@ -418,52 +437,6 @@ public abstract class AbstractJavaSource<O extends JavaSource<O>> implements
       if (body instanceof AbstractTypeDeclaration)
          return (AbstractTypeDeclaration) body;
       throw new ParserException("Source body was not of the expected type.");
-   }
-
-   @Override
-   public List<String> getGenericTypes()
-   {
-      List<String> result = new ArrayList<String>();
-      TypeDeclaration type = (TypeDeclaration) body;
-      List<TypeParameter> typeParameters = type.typeParameters();
-      if (typeParameters != null)
-      {
-         for (TypeParameter typeParameter : typeParameters)
-         {
-            result.add(typeParameter.getName().getIdentifier());
-         }
-      }
-      return Collections.unmodifiableList(result);
-   }
-
-   @Override
-   public O addGenericType(String genericType)
-   {
-      TypeDeclaration type = (TypeDeclaration) body;
-      TypeParameter tp2 = unit.getAST().newTypeParameter();
-      tp2.setName(unit.getAST().newSimpleName(genericType));
-      type.typeParameters().add(tp2);
-      return (O) this;
-   }
-
-   @Override
-   public O removeGenericType(String genericType)
-   {
-      TypeDeclaration type = (TypeDeclaration) body;
-      List<TypeParameter> typeParameters = type.typeParameters();
-      if (typeParameters != null)
-      {
-         Iterator<TypeParameter> it = typeParameters.iterator();
-         while (it.hasNext())
-         {
-            TypeParameter typeParameter = it.next();
-            if (typeParameter.getName().getIdentifier().equals(genericType))
-            {
-               it.remove();
-            }
-         }
-      }
-      return (O) this;
    }
 
    /*
@@ -891,4 +864,39 @@ public abstract class AbstractJavaSource<O extends JavaSource<O>> implements
    {
       return removeInterface(type.getQualifiedName());
    }
+
+   @Override
+   public List<JavaSource<?>> getNestedClasses()
+   {
+      List<AbstractTypeDeclaration> declarations = getNestedDeclarations(body);
+
+      List<JavaSource<?>> result = new ArrayList<JavaSource<?>>();
+      for (AbstractTypeDeclaration declaration : declarations)
+      {
+         result.add(JavaParserImpl.getJavaSource(this, document, unit, declaration));
+      }
+      return result;
+   }
+
+   private List<AbstractTypeDeclaration> getNestedDeclarations(BodyDeclaration body)
+   {
+
+      TypeDeclarationFinderVisitor typeDeclarationFinder = new TypeDeclarationFinderVisitor();
+      body.accept(typeDeclarationFinder);
+      List<AbstractTypeDeclaration> declarations = typeDeclarationFinder.getTypeDeclarations();
+
+      List<AbstractTypeDeclaration> result = new ArrayList<AbstractTypeDeclaration>(declarations);
+      if (!declarations.isEmpty())
+      {
+         // We don't want to return the current class' declaration.
+         result.remove(declarations.remove(0));
+         for (AbstractTypeDeclaration declaration : declarations)
+         {
+            result.removeAll(getNestedDeclarations(declaration));
+         }
+      }
+
+      return result;
+   }
+
 }

@@ -384,8 +384,23 @@ public class FieldImpl<O extends JavaSource<O>> implements Field<O>
       {
          if (!origin.requiresImport(typeName))
          {
-            Name name = ast.newSimpleName(simpleName);
-            type = ast.newSimpleType(name);
+            if (Types.isArray(typeName))
+            {
+               String arrayType = Types.stripArray(typeName);
+               int arrayDimension = Types.getArrayDimension(typeName);
+               if (Types.isPrimitive(arrayType))
+               {
+                  type = ast.newArrayType(ast.newPrimitiveType(PrimitiveType.toCode(arrayType)), arrayDimension);
+               }
+               else
+               {
+                  type = ast.newArrayType(ast.newSimpleType(ast.newSimpleName(arrayType)), arrayDimension);
+               }
+            }
+            else
+            {
+               type = ast.newSimpleType(ast.newSimpleName(simpleName));
+            }
          }
          else
          {
@@ -433,7 +448,7 @@ public class FieldImpl<O extends JavaSource<O>> implements Field<O>
    @Override
    public Field<O> setLiteralInitializer(final String value)
    {
-      String stub = "public class Stub { private Field<O> stub = " + value + " }";
+      String stub = "public class Stub { private String stub = " + value + " }";
       JavaClass temp = (JavaClass) JavaParser.parse(stub);
       FieldDeclaration internal = (FieldDeclaration) temp.getFields().get(0).getInternal();
 
@@ -510,6 +525,9 @@ public class FieldImpl<O extends JavaSource<O>> implements Field<O>
       return true;
    }
 
+   /**
+    * TODO: Should we deprecate this method in favor of {@link Field#getTypeInspector()#isPrimitive()} ?
+    */
    @Override
    public boolean isPrimitive()
    {
@@ -521,5 +539,4 @@ public class FieldImpl<O extends JavaSource<O>> implements Field<O>
       }
       return result;
    }
-
 }

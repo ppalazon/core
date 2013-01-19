@@ -23,8 +23,7 @@ public interface JavaSource<T extends JavaSource<T>> extends
          VisibilityScoped<T>,
          AnnotationTarget<T, T>,
          MemberHolder<T, Member>,
-         Origin<T>,
-         GenericCapable<T>
+         Origin<T>
 {
    /**
     * Return the canonical name of this {@link T} instance. This is equivalent to calling
@@ -77,6 +76,13 @@ public interface JavaSource<T extends JavaSource<T>> extends
     * and is not a nested type, this object will return itself.
     */
    public JavaSource<?> getEnclosingType();
+
+   /**
+    * Return a list containing {@link JavaSource} instances for each nested {@link Class} declaration found within
+    * <code>this</code>. Any modification of returned {@link JavaSource} instances will result in modification of the
+    * contents contained by <code>this</code> the parent instance.
+    */
+   public List<JavaSource<?>> getNestedClasses();
 
    /**
     * Return the {@link SourceType} of this {@link JavaSource} instance.

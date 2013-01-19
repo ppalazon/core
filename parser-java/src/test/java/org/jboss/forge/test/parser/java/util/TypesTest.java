@@ -11,12 +11,14 @@ import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertTrue;
 
+import java.util.Vector;
+
 import org.jboss.forge.parser.java.util.Types;
 import org.junit.Test;
 
 /**
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
- * 
+ *
  */
 public class TypesTest
 {
@@ -69,4 +71,63 @@ public class TypesTest
       assertFalse(Types.isSimpleName(""));
       assertFalse(Types.isSimpleName("Foo-bar"));
    }
+
+   @Test
+   public void testArray()
+   {
+      assertTrue(Types.isArray("byte[]"));
+      assertTrue(Types.isArray("java.lang.Boolean[]"));
+      assertTrue(Types.isArray("java.util.Vector[]"));
+
+      assertTrue(Types.isArray(byte[].class.getName()));
+      assertTrue(Types.isArray(Boolean[].class.getName()));
+      assertTrue(Types.isArray(Types[].class.getName()));
+
+      assertEquals("byte", Types.stripArray(byte[].class.getSimpleName()));
+      assertEquals("Boolean", Types.stripArray(Boolean[].class.getSimpleName()));
+      assertEquals("Vector", Types.stripArray(Vector[].class.getSimpleName()));
+
+      assertEquals("byte", Types.stripArray(byte[].class.getName()));
+      assertEquals("java.lang.Boolean", Types.stripArray(Boolean[].class.getName()));
+      assertEquals("java.util.Vector", Types.stripArray(Vector[].class.getName()));
+
+      assertEquals("int", Types.stripArray(int[][][][][].class.getName()));
+
+      assertEquals("int", Types.stripArray(int[][][][][].class.getSimpleName()));
+      assertEquals("List<Long>", Types.stripArray("List<Long>[]"));
+      assertEquals("java.lang.Class<?>", Types.stripArray("java.lang.Class<?>[]"));
+      assertEquals("java.lang.Class<T>", Types.stripArray("java.lang.Class<T>[]"));
+      assertEquals("java.lang.Class<LONG_TYPE_VARIABLE_NAME>",
+               Types.stripArray("java.lang.Class<LONG_TYPE_VARIABLE_NAME>[]"));
+      assertEquals("java.lang.Class<? extends Number>", Types.stripArray("java.lang.Class<? extends Number>[]"));
+      assertEquals("java.lang.Class<E extends Enum<E>>", Types.stripArray("java.lang.Class<E extends Enum<E>>[]"));
+   }
+
+   @Test
+   public void testArrayDimensions()
+   {
+      assertEquals(0, Types.getArrayDimension(Boolean.class.getName()));
+      assertEquals(1, Types.getArrayDimension(int[].class.getName()));
+      assertEquals(2, Types.getArrayDimension(int[][].class.getName()));
+      assertEquals(3, Types.getArrayDimension(int[][][].class.getName()));
+
+   }
+
+   @Test
+   public void testGenerics()
+   {
+      assertEquals("byte", Types.stripGenerics("byte"));
+      assertEquals("byte[]", Types.stripGenerics("byte[]"));
+      assertEquals("java.lang.Class", Types.stripGenerics("java.lang.Class"));
+      assertEquals("java.lang.Class", Types.stripGenerics("java.lang.Class<?>"));
+      assertEquals("java.lang.Class", Types.stripGenerics("java.lang.Class<? extends Number>"));
+      assertEquals("java.lang.Class", Types.stripGenerics("java.lang.Class<E extends Enum<E>>"));
+      assertEquals("java.lang.Class[]", Types.stripGenerics("java.lang.Class[]"));
+      assertEquals("java.lang.Class[]", Types.stripGenerics("java.lang.Class<?>[]"));
+      assertEquals("java.lang.Class[]", Types.stripGenerics("java.lang.Class<T>[]"));
+      assertEquals("java.lang.Class[]", Types.stripGenerics("java.lang.Class<LONG_TYPE_VARIABLE_NAME>[]"));
+      assertEquals("java.lang.Class[]", Types.stripGenerics("java.lang.Class<? extends Number>[]"));
+      assertEquals("java.lang.Class[]", Types.stripGenerics("java.lang.Class<E extends Enum<E>>[]"));
+   }
+
 }
