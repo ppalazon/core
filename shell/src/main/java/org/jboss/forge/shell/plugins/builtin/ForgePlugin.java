@@ -37,6 +37,7 @@ import org.jboss.forge.project.dependencies.DependencyBuilder;
 import org.jboss.forge.project.dependencies.DependencyFilter;
 import org.jboss.forge.project.dependencies.DependencyQuery;
 import org.jboss.forge.project.dependencies.DependencyQueryBuilder;
+import org.jboss.forge.project.dependencies.DependencyRepositoryImpl;
 import org.jboss.forge.project.dependencies.DependencyResolver;
 import org.jboss.forge.project.dependencies.NonSnapshotDependencyFilter;
 import org.jboss.forge.project.dependencies.ScopeType;
@@ -134,7 +135,9 @@ public class ForgePlugin implements Plugin
       out.print(ShellColor.ITALIC, "JBoss Forge");
       out.print(", version [ ");
       out.print(ShellColor.BOLD, environment.getRuntimeVersion());
-      out.println(" ] - JBoss, by Red Hat, Inc. [ http://jboss.org/forge ]");
+      out.print(" ] - JBoss, by ");
+      out.print(ShellColor.RED, "Red Hat, Inc.");
+      out.println(" [ http://forge.jboss.org ]");
    }
 
    @Command(value = "restart", help = "Reload all plugins and default configurations")
@@ -217,24 +220,19 @@ public class ForgePlugin implements Plugin
             @Option(name = "version", description = "branch, tag, or version to build") final String version,
             final PipeOut out) throws Exception
    {
-      List<PluginRef> plugins = PluginUtil.findPlugin(shell, configuration, pluginName);
+      PluginRef plugin = PluginUtil.findPluginByName(shell, configuration, pluginName, true);
 
-      if (plugins.isEmpty())
+      if (plugin == null)
       {
          throw new RuntimeException("no plugin found with name [" + pluginName + "]");
       }
-      else if (plugins.size() > 1)
-      {
-         throw new RuntimeException("ambiguous plugin query: multiple matches for [" + pluginName + "]");
-      }
       else
       {
-         PluginRef ref = plugins.get(0);
-         ShellMessages.info(out, "Preparing to install plugin: " + ref.getName());
+         ShellMessages.info(out, "Preparing to install plugin: " + plugin.getName());
 
-         if (ref.isGit())
+         if (plugin.isGit())
          {
-            installFromGit(ref.getGitRepo(), Strings.isNullOrEmpty(version) ? ref.getGitRef() : version, null, out);
+            installFromGit(plugin.getGitRepo(), Strings.isNullOrEmpty(version) ? plugin.getGitRef() : version, null, out);
          }
          else
          {
@@ -489,7 +487,7 @@ public class ForgePlugin implements Plugin
                               return dependency.getVersion().compareTo(runtimeVersion) > 0;
                            }
                         }
-               ));
+               )).setRepositories(new DependencyRepositoryImpl(DependencyFacet.KnownRepository.JBOSS_NEXUS));
       List<Dependency> versions = resolver.resolveVersions(query);
       return versions.isEmpty() ? null : versions.get(versions.size() - 1);
    }
