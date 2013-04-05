@@ -14,8 +14,10 @@ import static org.junit.Assert.assertTrue;
 import java.math.BigDecimal;
 import java.util.Date;
 
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
+import javax.persistence.Lob;
 import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
@@ -24,6 +26,8 @@ import javax.persistence.Temporal;
 import javax.persistence.TemporalType;
 
 import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.forge.parser.java.Annotation;
+import org.jboss.forge.parser.java.Field;
 import org.jboss.forge.parser.java.JavaClass;
 import org.jboss.forge.project.Project;
 import org.jboss.forge.project.facets.JavaSourceFacet;
@@ -182,6 +186,44 @@ public class NewFieldPluginTest extends AbstractJPATest
    }
 
    @Test
+   public void testNewLobField() throws Exception
+   {
+      Project project = getProject();
+      JavaClass javaClass = generateEntity(project);
+
+      getShell().execute(ConstraintInspector.getName(FieldPlugin.class)
+               + " lob --named image --length 10000");
+
+      javaClass = (JavaClass) project.getFacet(JavaSourceFacet.class).getJavaResource(javaClass).getJavaSource();
+      assertLobField(javaClass, "image", 10000);
+   }
+
+   @Test
+   public void testNewLobFieldDefaultLength() throws Exception
+   {
+      Project project = getProject();
+      JavaClass javaClass = generateEntity(project);
+
+      getShell().execute(ConstraintInspector.getName(FieldPlugin.class)
+               + " lob --named image");
+
+      javaClass = (JavaClass) project.getFacet(JavaSourceFacet.class).getJavaResource(javaClass).getJavaSource();
+      assertLobField(javaClass, "image", Integer.MAX_VALUE);
+   }
+   
+   private void assertLobField(JavaClass javaClass, String fieldName, int length) {
+       assertTrue(javaClass.hasField(fieldName));
+       Field<JavaClass> imageField = javaClass.getField(fieldName);
+       assertEquals("byte", imageField.getType());
+       assertTrue(javaClass.hasImport(Lob.class));  
+       assertTrue(imageField.hasAnnotation(Lob.class));
+       assertTrue(imageField.hasAnnotation(Column.class));
+       Annotation<JavaClass> columnAnnotation = imageField.getAnnotation(Column.class);
+       assertEquals(String.valueOf(length), columnAnnotation.getLiteralValue("length"));
+       assertFalse(javaClass.hasSyntaxErrors());
+   }
+
+   @Test
    public void testNewOneToOneRelationship() throws Exception
    {
       Project project = getProject();
@@ -199,6 +241,7 @@ public class NewFieldPluginTest extends AbstractJPATest
       assertTrue(leftEntity.hasField("right"));
       assertTrue(leftEntity.getField("right").getType().equals(rightEntity.getName()));
       assertTrue(leftEntity.getField("right").hasAnnotation(OneToOne.class));
+      assertNull(leftEntity.getField("right").getAnnotation(OneToOne.class).getAnnotationValue("optional"));
       assertTrue(leftEntity.hasImport(rightEntity.getQualifiedName()));
       assertTrue(leftEntity.hasImport(OneToOne.class));
       assertFalse(leftEntity.hasSyntaxErrors());
@@ -264,8 +307,39 @@ public class NewFieldPluginTest extends AbstractJPATest
       assertTrue(leftEntity.hasField("right"));
       assertTrue(leftEntity.getField("right").getType().equals(rightEntity.getName()));
       assertTrue(leftEntity.getField("right").hasAnnotation(OneToOne.class));
-      assertEquals(leftEntity.getField("right").getAnnotation(OneToOne.class).getEnumValue(FetchType.class, "fetch"),
-               FetchType.EAGER);
+      assertEquals(FetchType.EAGER,
+               leftEntity.getField("right").getAnnotation(OneToOne.class).getEnumValue(FetchType.class, "fetch"));
+      assertTrue(leftEntity.hasImport(rightEntity.getQualifiedName()));
+      assertTrue(leftEntity.hasImport(OneToOne.class));
+      assertFalse(leftEntity.hasSyntaxErrors());
+
+      rightEntity = (JavaClass) project.getFacet(JavaSourceFacet.class).getJavaResource(rightEntity).getJavaSource();
+
+      assertFalse(rightEntity.hasField("left"));
+      assertFalse(rightEntity.hasImport(leftEntity.getQualifiedName()));
+      assertFalse(rightEntity.hasImport(OneToOne.class));
+      assertFalse(rightEntity.hasSyntaxErrors());
+   }
+   
+   @Test
+   public void testNewOneToOneRelationshipNonOptional() throws Exception
+   {
+      Project project = getProject();
+      JavaClass rightEntity = generateEntity(project);
+      JavaClass leftEntity = generateEntity(project);
+
+      getShell().execute(
+               ConstraintInspector.getName(FieldPlugin.class) + " oneToOne --named right --fieldType ~."
+                        + PersistenceFacetImpl.DEFAULT_ENTITY_PACKAGE + "."
+                        + rightEntity.getName() + " --required");
+
+      leftEntity = (JavaClass) project.getFacet(JavaSourceFacet.class).getJavaResource(leftEntity).getJavaSource();
+
+      assertTrue(leftEntity.hasAnnotation(Entity.class));
+      assertTrue(leftEntity.hasField("right"));
+      assertTrue(leftEntity.getField("right").getType().equals(rightEntity.getName()));
+      assertTrue(leftEntity.getField("right").hasAnnotation(OneToOne.class));
+      assertEquals("false", leftEntity.getField("right").getAnnotation(OneToOne.class).getLiteralValue("optional"));
       assertTrue(leftEntity.hasImport(rightEntity.getQualifiedName()));
       assertTrue(leftEntity.hasImport(OneToOne.class));
       assertFalse(leftEntity.hasSyntaxErrors());
@@ -336,8 +410,8 @@ public class NewFieldPluginTest extends AbstractJPATest
                .equals(rightEntity.getQualifiedName()));
       assertTrue(leftEntity.getField("right").hasAnnotation(ManyToMany.class));
       assertNull(leftEntity.getField("right").getAnnotation(ManyToMany.class).getStringValue("mappedBy"));
-      assertEquals(leftEntity.getField("right").getAnnotation(ManyToMany.class).getEnumValue(FetchType.class, "fetch"),
-               FetchType.EAGER);
+      assertEquals(FetchType.EAGER,
+               leftEntity.getField("right").getAnnotation(ManyToMany.class).getEnumValue(FetchType.class, "fetch"));
       assertTrue(leftEntity.hasImport(rightEntity.getQualifiedName()));
       assertTrue(leftEntity.hasImport(ManyToMany.class));
       assertFalse(leftEntity.hasSyntaxErrors());
@@ -408,8 +482,8 @@ public class NewFieldPluginTest extends AbstractJPATest
 
       assertTrue(leftEntity.getField("right").hasAnnotation(OneToMany.class));
       assertNull(leftEntity.getField("right").getAnnotation(OneToMany.class).getStringValue("mappedBy"));
-      assertEquals(leftEntity.getField("right").getAnnotation(OneToMany.class).getEnumValue(FetchType.class, "fetch"),
-               FetchType.EAGER);
+      assertEquals(FetchType.EAGER,
+               leftEntity.getField("right").getAnnotation(OneToMany.class).getEnumValue(FetchType.class, "fetch"));
       assertTrue(leftEntity.hasImport(rightEntity.getQualifiedName()));
       assertTrue(leftEntity.hasImport(OneToMany.class));
       assertFalse(leftEntity.hasSyntaxErrors());
@@ -441,6 +515,7 @@ public class NewFieldPluginTest extends AbstractJPATest
       assertEquals(rightEntity.getName(), leftEntity.getField("right").getType());
       assertTrue(leftEntity.getField("right").hasAnnotation(ManyToOne.class));
       assertNull(leftEntity.getField("right").getAnnotation(ManyToOne.class).getStringValue("mappedBy"));
+      assertNull(leftEntity.getField("right").getAnnotation(ManyToOne.class).getStringValue("optional"));
       assertTrue(leftEntity.hasImport(rightEntity.getQualifiedName()));
       assertTrue(leftEntity.hasImport(ManyToOne.class));
       assertFalse(leftEntity.hasSyntaxErrors());
@@ -472,8 +547,40 @@ public class NewFieldPluginTest extends AbstractJPATest
       assertEquals(rightEntity.getName(), leftEntity.getField("right").getType());
       assertTrue(leftEntity.getField("right").hasAnnotation(ManyToOne.class));
       assertNull(leftEntity.getField("right").getAnnotation(ManyToOne.class).getStringValue("mappedBy"));
-      assertEquals(leftEntity.getField("right").getAnnotation(ManyToOne.class).getEnumValue(FetchType.class, "fetch"),
-               FetchType.EAGER);
+      assertEquals(FetchType.EAGER,
+               leftEntity.getField("right").getAnnotation(ManyToOne.class).getEnumValue(FetchType.class, "fetch"));
+      assertTrue(leftEntity.hasImport(rightEntity.getQualifiedName()));
+      assertTrue(leftEntity.hasImport(ManyToOne.class));
+      assertFalse(leftEntity.hasSyntaxErrors());
+
+      rightEntity = (JavaClass) project.getFacet(JavaSourceFacet.class).getJavaResource(rightEntity).getJavaSource();
+
+      assertFalse(rightEntity.hasField("left"));
+      assertFalse(rightEntity.hasImport(leftEntity.getQualifiedName()));
+      assertFalse(rightEntity.hasImport(OneToMany.class));
+      assertFalse(rightEntity.hasSyntaxErrors());
+   }
+   
+   @Test
+   public void testNewManyToOneRelationshipNonOptional() throws Exception
+   {
+      Project project = getProject();
+      JavaClass rightEntity = generateEntity(project);
+      JavaClass leftEntity = generateEntity(project);
+
+      getShell().execute(
+               ConstraintInspector.getName(FieldPlugin.class) + " manyToOne --named right --fieldType ~."
+                        + PersistenceFacetImpl.DEFAULT_ENTITY_PACKAGE + "."
+                        + rightEntity.getName() + " --required");
+
+      leftEntity = (JavaClass) project.getFacet(JavaSourceFacet.class).getJavaResource(leftEntity).getJavaSource();
+
+      assertTrue(leftEntity.hasAnnotation(Entity.class));
+      assertTrue(leftEntity.hasField("right"));
+      assertEquals(rightEntity.getName(), leftEntity.getField("right").getType());
+      assertTrue(leftEntity.getField("right").hasAnnotation(ManyToOne.class));
+      assertNull(leftEntity.getField("right").getAnnotation(ManyToOne.class).getStringValue("mappedBy"));
+      assertEquals("false", leftEntity.getField("right").getAnnotation(ManyToOne.class).getLiteralValue("optional"));
       assertTrue(leftEntity.hasImport(rightEntity.getQualifiedName()));
       assertTrue(leftEntity.hasImport(ManyToOne.class));
       assertFalse(leftEntity.hasSyntaxErrors());

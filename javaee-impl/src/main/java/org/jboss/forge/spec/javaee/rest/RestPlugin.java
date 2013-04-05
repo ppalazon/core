@@ -7,6 +7,9 @@
 package org.jboss.forge.spec.javaee.rest;
 
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.io.StringWriter;
+import java.io.Writer;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.HashMap;
@@ -17,6 +20,10 @@ import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import javax.persistence.Entity;
 import javax.persistence.Id;
+import javax.persistence.ManyToMany;
+import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 import javax.ws.rs.core.MediaType;
 import javax.xml.bind.annotation.XmlRootElement;
 
@@ -55,8 +62,11 @@ import org.jboss.forge.spec.javaee.PersistenceFacet;
 import org.jboss.forge.spec.javaee.RestActivatorType;
 import org.jboss.forge.spec.javaee.RestApplicationFacet;
 import org.jboss.forge.spec.javaee.RestFacet;
-import org.jboss.seam.render.TemplateCompiler;
-import org.jboss.seam.render.template.CompiledTemplateResource;
+import org.jboss.forge.spec.javaee.events.RestGeneratedResources;
+
+import freemarker.template.DefaultObjectWrapper;
+import freemarker.template.Template;
+import freemarker.template.TemplateException;
 
 /**
  * @author <a href="mailto:lincolnbaxter@gmail.com">Lincoln Baxter, III</a>
@@ -74,11 +84,11 @@ public class RestPlugin implements Plugin
    private Event<InstallFacets> request;
 
    @Inject
-   @Current
-   private Resource<?> currentResource;
+   private Event<RestGeneratedResources> generatedEvent;
 
    @Inject
-   private TemplateCompiler compiler;
+   @Current
+   private Resource<?> currentResource;
 
    @Inject
    private ShellPrompt prompt;
@@ -144,11 +154,12 @@ public class RestPlugin implements Plugin
       List<JavaResource> javaTargets = selectTargets(out, targets);
       if (javaTargets.isEmpty())
       {
-         ShellMessages.error(out, "Must specify a domain @Entity on which to operate.");
-         return;
+         throw new IllegalArgumentException("Must specify a domain @Entity on which to operate.");
       }
 
       final JavaSourceFacet java = project.getFacet(JavaSourceFacet.class);
+      List<JavaResource> endpoints = new ArrayList<JavaResource>();  // for RestGeneratedResources event
+      List<JavaResource> entities  = new ArrayList<JavaResource>();  // for RestGeneratedResources event
       for (JavaResource jr : javaTargets)
       {
          JavaClass entity = (JavaClass) (jr).getJavaSource();
@@ -165,8 +176,9 @@ public class RestPlugin implements Plugin
          String idSetterName = resolveIdSetterName(entity);
          String idGetterName = resolveIdGetterName(entity);
 
-         CompiledTemplateResource template = compiler.compileResource(getClass().getResourceAsStream(
-                  "/org/jboss/forge/rest/Endpoint.jv"));
+         freemarker.template.Configuration freemarkerConfig = new freemarker.template.Configuration();
+         freemarkerConfig.setClassForTemplateLoading(getClass(), "/");
+         freemarkerConfig.setObjectWrapper(new DefaultObjectWrapper());
 
          Map<Object, Object> map = new HashMap<Object, Object>();
          map.put("entity", entity);
@@ -175,26 +187,51 @@ public class RestPlugin implements Plugin
          map.put("getIdStatement", idGetterName);
          map.put("contentType", contentType);
          String entityTable = getEntityTable(entity);
+         String selectExpression = getSelectExpression(entity, entityTable);
+         String idClause = getIdClause(entity, entityTable);
          map.put("entityTable", entityTable);
+         map.put("selectExpression", selectExpression);
+         map.put("idClause", idClause);
          map.put("resourcePath", entityTable.toLowerCase() + "s");
 
-         JavaClass resource = JavaParser.parse(JavaClass.class, template.render(map));
+         Writer output = new StringWriter();
+         try
+         {
+            Template templateFile = freemarkerConfig.getTemplate("org/jboss/forge/rest/Endpoint.jv");
+            templateFile.process(map, output);
+            output.flush();
+         }
+         catch (IOException ioEx)
+         {
+            throw new RuntimeException(ioEx);
+         }
+         catch (TemplateException templateEx)
+         {
+            throw new RuntimeException(templateEx);
+         }
+
+         JavaClass resource = JavaParser.parse(JavaClass.class, output.toString());
          resource.addImport(entity.getQualifiedName());
          resource.setPackage(java.getBasePackage() + ".rest");
 
          /*
           * Save the sources
           */
-         java.saveJavaSource(entity);
+         entities.add(java.saveJavaSource(entity));
 
          if (!java.getJavaResource(resource).exists()
                   || prompt.promptBoolean("Endpoint [" + resource.getQualifiedName() + "] already, exists. Overwrite?"))
          {
-            java.saveJavaSource(resource);
+        	 endpoints.add(java.saveJavaSource(resource));
             ShellMessages.success(out, "Generated REST endpoint for [" + entity.getQualifiedName() + "]");
+
          }
          else
             ShellMessages.info(out, "Aborted REST endpoint generation for [" + entity.getQualifiedName() + "]");
+      }
+      if (! entities.isEmpty())
+      {
+         generatedEvent.fire(new RestGeneratedResources(entities, endpoints));
       }
    }
 
@@ -266,7 +303,7 @@ public class RestPlugin implements Plugin
             {
                break;
             }
-            else if (type != null && result == null && member.isPublic())
+            else if (type != null && member.isPublic())
             {
                String memberName = member.getName();
                // Cheat a little if the member is public
@@ -289,7 +326,6 @@ public class RestPlugin implements Plugin
 
       return result;
    }
-
 
    private String resolveIdGetterName(JavaClass entity)
    {
@@ -321,11 +357,11 @@ public class RestPlugin implements Plugin
                   // It's a getter
                   if (method.getParameters().size() == 0 && type.equals(method.getReturnType()))
                   {
-                    if (method.getName().toLowerCase().contains(name.toLowerCase()))
-                    {
-                      result = method.getName() + "()";
-                      break;
-                    }
+                     if (method.getName().toLowerCase().contains(name.toLowerCase()))
+                     {
+                        result = method.getName() + "()";
+                        break;
+                     }
                   }
                }
             }
@@ -334,7 +370,7 @@ public class RestPlugin implements Plugin
             {
                break;
             }
-            else if (type != null && result == null && member.isPublic())
+            else if (type != null && member.isPublic())
             {
                String memberName = member.getName();
                // Cheat a little if the member is public
@@ -374,6 +410,77 @@ public class RestPlugin implements Plugin
          }
       }
       return table;
+   }
+
+   private String getSelectExpression(JavaClass entity, String entityTable)
+   {
+      char entityVariable = entityTable.toLowerCase().charAt(0);
+      StringBuilder expressionBuilder = new StringBuilder();
+      expressionBuilder.append("SELECT ");
+      expressionBuilder.append(entityVariable);
+      expressionBuilder.append(" FROM ");
+      expressionBuilder.append(entityTable);
+      expressionBuilder.append(" ");
+      expressionBuilder.append(entityVariable);
+
+      for (Member<JavaClass, ?> member : entity.getMembers())
+      {
+         if (member.hasAnnotation(OneToOne.class) || member.hasAnnotation(OneToMany.class)
+                  || member.hasAnnotation(ManyToMany.class) || member.hasAnnotation(ManyToOne.class))
+         {
+            String name = member.getName();
+            String associationField = null;
+            if (member instanceof Method)
+            {
+               if (name.startsWith("get"))
+               {
+                  associationField = Strings.uncapitalize(name.substring(2));
+               }
+            }
+            else if (member instanceof Field)
+            {
+               associationField = name;
+            }
+
+            if (associationField == null)
+            {
+               throw new RuntimeException("Could not compute the association field for member:" + member.getName()
+                        + " in entity" + entity.getName());
+            }
+            else
+            {
+               expressionBuilder.append(" LEFT JOIN FETCH ");
+               expressionBuilder.append(entityVariable);
+               expressionBuilder.append('.');
+               expressionBuilder.append(associationField);
+            }
+         }
+      }
+      return expressionBuilder.toString();
+   }
+
+   private String getIdClause(JavaClass entity, String entityTable)
+   {
+      for (Member<JavaClass, ?> member : entity.getMembers())
+      {
+         if (member.hasAnnotation(Id.class))
+         {
+            String memberName = member.getName();
+            String id = null;
+            if (member instanceof Method)
+            {
+               // Getters are expected to obey JavaBean conventions
+               id = Strings.uncapitalize(memberName.substring(2));
+            }
+            if (member instanceof Field)
+            {
+               id = memberName;
+            }
+            char entityVariable = entityTable.toLowerCase().charAt(0);
+            return "WHERE " + entityVariable + "." + id + " = " + ":entityId";
+         }
+      }
+      return null;
    }
 
    private List<JavaResource> selectTargets(final PipeOut out, Resource<?>[] targets)

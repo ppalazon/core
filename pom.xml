@@ -4,12 +4,12 @@
    <parent>
       <groupId>org.jboss</groupId>
       <artifactId>jboss-parent</artifactId>
-      <version>9</version>
+      <version>10</version>
    </parent>
 
    <groupId>org.jboss.forge</groupId>
    <artifactId>forge-parent</artifactId>
-   <version>1.2.2-SNAPSHOT</version>
+   <version>1.2.3-SNAPSHOT</version>
    <packaging>pom</packaging>
 
    <name>Forge - Parent</name>
@@ -61,15 +61,13 @@
       <forge.release.codename>One</forge.release.codename>
       <forge.release.version>${project.version}</forge.release.version>
 
-      <!-- Build Plugin Versions -->
-      <version.exec.plugin>1.1.2-Beta1</version.exec.plugin>
-
       <!-- Artifact Versions -->
       <aether.version>1.11</aether.version>
       <arquillian.version>1.0.0.CR7</arquillian.version>
       <arquillian.container.version>1.0.0.CR3</arquillian.container.version>
       <cal10n.version>0.7.2</cal10n.version>
       <cdi.version>1.0-SP4</cdi.version>
+      <freemarker.version>2.3.19</freemarker.version>
       <groovy.version>1.7.5</groovy.version>
       <httpclient.version>4.0.1</httpclient.version>
       <commonscodec.version>1.6</commonscodec.version>
@@ -78,7 +76,7 @@
       <jboss.logging.version>3.1.0.GA</jboss.logging.version>
       <jboss.logmanager.version>1.2.2.GA</jboss.logmanager.version>
       <jboss.modules.version>1.1.3.GA</jboss.modules.version>
-      <jgit.version>2.0.0.201206130900-r</jgit.version>
+      <jgit.version>2.3.1.201302201838-r</jgit.version>
       <jline.version>2.5</jline.version>
       <junit.version>4.8.1</junit.version>
       <log4j.version>1.2.16</log4j.version>
@@ -380,6 +378,11 @@
          </dependency>
 
          <dependency>
+            <groupId>org.freemarker</groupId>
+            <artifactId>freemarker</artifactId>
+            <version>${freemarker.version}</version>
+         </dependency>
+         <dependency>
             <groupId>org.jboss.seam.render</groupId>
             <artifactId>seam-render</artifactId>
             <version>${seam.render.version}</version>
@@ -574,39 +577,12 @@
       <plugins>
          <plugin>
             <groupId>org.apache.maven.plugins</groupId>
-            <artifactId>maven-enforcer-plugin</artifactId>
-            <configuration>
-               <rules>
-                  <requireMavenVersion>
-                     <version>[3.0,4.0)</version>
-                  </requireMavenVersion>
-                  <requireJavaVersion>
-                     <version>[1.6.0-30,1.7)</version>
-                  </requireJavaVersion>
-               </rules>
-            </configuration>
-            <executions>
-               <execution>
-                  <id>enforce-versions</id>
-                  <goals>
-                     <goal>enforce</goal>
-                  </goals>
-               </execution>
-            </executions>
-         </plugin>
-         <plugin>
-            <groupId>org.apache.maven.plugins</groupId>
             <artifactId>maven-compiler-plugin</artifactId>
             <configuration>
                <source>1.6</source>
                <target>1.6</target>
                <encoding>UTF-8</encoding>
             </configuration>
-         </plugin>
-         <plugin>
-            <groupId>org.codehaus.mojo</groupId>
-            <artifactId>exec-maven-plugin</artifactId>
-            <version>${version.exec.plugin}</version>
          </plugin>
          <plugin>
             <groupId>org.apache.maven.plugins</groupId>
@@ -670,6 +646,7 @@
                   <outputDirectory>${project.build.directory}/javadoc/${project.version}</outputDirectory>
                   <reportOutputDirectory>${project.build.directory}/javadoc/${project.version}</reportOutputDirectory>
                   <destDir>${project.build.directory}/javadoc/${project.version}</destDir>
+                  <failOnError>false</failOnError>
                </configuration>
                <executions>
                   <execution>
@@ -692,33 +669,6 @@
                <configuration>
                   <argLine>-Xms512m -Xmx1024m -XX:MaxPermSize=128m</argLine>
                </configuration>
-            </plugin>
-
-            <plugin>
-               <groupId>org.apache.maven.plugins</groupId>
-               <artifactId>maven-assembly-plugin</artifactId>
-               <version>2.2-beta-5</version>
-               <executions>
-                  <execution>
-                     <id>distribution</id>
-                     <phase>package</phase>
-                     <goals>
-                        <goal>single</goal>
-                     </goals>
-                     <configuration>
-                        <descriptors>
-                           <descriptor>src/main/assembly/assembly.xml</descriptor>
-                        </descriptors>
-                        <finalName>${project.build.finalName}</finalName>
-                     </configuration>
-                  </execution>
-               </executions>
-            </plugin>
-
-            <plugin>
-               <groupId>org.apache.maven.plugins</groupId>
-               <artifactId>maven-enforcer-plugin</artifactId>
-               <version>1.1.1</version>
             </plugin>
 
             <plugin>
@@ -875,11 +825,9 @@
          </activation>
          <modules>
             <module>event-bus-api</module>
-            <module>parser-java-api</module>
             <module>parser-xml</module>
             <module>maven-api</module>
             <module>shell-api</module>
-            <module>parser-java</module>
             <module>project-model-maven</module>
             <module>test-harness</module>
             <module>test-harness-web</module>
@@ -893,5 +841,7 @@
       <connection>${forge.scm.connection}</connection>
       <developerConnection>${forge.developer.connection}</developerConnection>
       <url>${forge.scm.url}</url>
-   </scm>
+     <tag>HEAD</tag>
+  </scm>
 </project>
+

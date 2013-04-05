@@ -18,6 +18,7 @@ import javax.inject.Inject;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.FetchType;
+import javax.persistence.Lob;
 import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
@@ -238,7 +239,7 @@ public class FieldPlugin implements Plugin
          shell.println("Could not locate the @Entity requested. No update was made.");
       }
    }
-
+   
    @Command(value = "string", help = "Add a String field to an existing @Entity class")
    public void newStringField(
             @Option(name = "named",
@@ -257,6 +258,33 @@ public class FieldPlugin implements Plugin
       }
    }
 
+   @Command(value = "lob", help = "Add a byte[] field, annotated with @Lob, to an existing @Entity class")
+   public void newLobField(
+           @Option(name = "named",
+           required = true,
+           description = "The field name",
+           type = PromptType.JAVA_VARIABLE_NAME) final String fieldName,
+           @Option(name = "length",
+           required = false,
+           description = "Lob column length") Integer length)
+   {
+       try
+       {
+           JavaClass entity = getJavaClass();
+           if (length == null)
+           {
+               length = Integer.MAX_VALUE;
+           }
+           addFieldTo(entity, byte[].class, fieldName, Lob.class).addAnnotation(Column.class).setLiteralValue("length",
+                    Integer.toString(length));
+           project.getFacet(JavaSourceFacet.class).saveJavaSource(entity);
+       }
+       catch (FileNotFoundException e)
+       {
+           shell.println("Could not locate the @Entity requested. No update was made.");
+       }
+   }
+   
    @Command(value = "oneToOne", help = "Add a One-to-one relationship field to an existing @Entity class")
    public void newOneToOneRelationship(
             @Option(name = "named",
@@ -273,7 +301,8 @@ public class FieldPlugin implements Plugin
                      type = PromptType.JAVA_VARIABLE_NAME) final String inverseFieldName,
             @Option(name = "fetchType",
                      required = false,
-                     description = "Whether the association should be lazily loaded or must be eagerly fetched.") final FetchType fetchType)
+                     description = "Whether the association should be lazily loaded or must be eagerly fetched.") final FetchType fetchType,
+            @Option(name = "required", required = false, flagOnly = true, description = "Whether the association is required. Sets the optional attribute to false.") final boolean required)
    {
       JavaSourceFacet java = project.getFacet(JavaSourceFacet.class);
 
@@ -291,6 +320,7 @@ public class FieldPlugin implements Plugin
          }
 
          Field<JavaClass> localField = addFieldTo(entityClass, fieldEntityClass, fieldName, OneToOne.class);
+         Annotation<JavaClass> annotation = localField.getAnnotation(OneToOne.class);
          if ((inverseFieldName != null) && !inverseFieldName.isEmpty())
          {
             Field<JavaClass> inverseField = addFieldTo(fieldEntityClass, entityClass, inverseFieldName, OneToOne.class);
@@ -300,10 +330,14 @@ public class FieldPlugin implements Plugin
          
          if (fetchType != null)
          {
-            Annotation<JavaClass> annotation = localField.getAnnotation(OneToOne.class);
             annotation.setEnumValue("fetch", fetchType);
-            java.saveJavaSource(entityClass);
          }
+         if (required)
+         {
+            // Set the optional attribute of @OneToOne/@ManyToOne only when false, since the default value is true
+            annotation.setLiteralValue("optional", "false");
+         }
+         java.saveJavaSource(entityClass);
       }
       catch (FileNotFoundException e)
       {
@@ -496,7 +530,8 @@ public class FieldPlugin implements Plugin
                      type = PromptType.JAVA_VARIABLE_NAME) final String inverseFieldName,
             @Option(name = "fetchType",
                      required = false,
-                     description = "Whether the association should be lazily loaded or must be eagerly fetched.") final FetchType fetchType)
+                     description = "Whether the association should be lazily loaded or must be eagerly fetched.") final FetchType fetchType,
+            @Option(name = "required", required = false, flagOnly = true, description = "Whether the association is required. Sets the optional attribute to false.") final boolean required)
    {
       JavaSourceFacet java = project.getFacet(JavaSourceFacet.class);
 
@@ -551,6 +586,11 @@ public class FieldPlugin implements Plugin
          if(fetchType != null)
          {
             manyAnnotation.setEnumValue("fetch", fetchType);
+         }
+         if (required)
+         {
+            // Set the optional attribute of @OneToOne/@ManyToOne only when false, since the default value is true
+            manyAnnotation.setLiteralValue("optional", "false");
          }
          java.saveJavaSource(many);
       }
@@ -654,10 +694,17 @@ public class FieldPlugin implements Plugin
 
       Field<JavaClass> field = targetEntity.addField();
       field.setName(fieldName).setPrivate().setType(fieldType).addAnnotation(annotation);
-      if (!fieldType.getCanonicalName().startsWith("java.lang.") && !fieldType.isPrimitive()
-               && !fieldType.getCanonicalName().equals(targetEntity.getCanonicalName()))
+      
+      Class<?> fieldTypeForImport = fieldType;
+      if (fieldType.getComponentType() != null)
       {
-         targetEntity.addImport(fieldType);
+          fieldTypeForImport = fieldType.getComponentType();
+      }
+      
+      if (!fieldTypeForImport.getCanonicalName().startsWith("java.lang.") && !fieldTypeForImport.isPrimitive()
+               && !fieldTypeForImport.getCanonicalName().equals(targetEntity.getCanonicalName()))
+      {
+         targetEntity.addImport(fieldTypeForImport);
       }
       Refactory.createGetterAndSetter(targetEntity, field);
       updateToString(targetEntity);
